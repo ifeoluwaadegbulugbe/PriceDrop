@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AssistantBox } from "@/components/assistant-box";
 import { DeltaBadge, DemoCatalogueBadge, SimulationBadge, TrackedStatusBadge } from "@/components/badges";
+import { DealCard } from "@/components/deal-card";
 import { ProductTile } from "@/components/product-tile";
 import type { ActivityRow, AlertRow, ObservationRow, ProductRow, PurchaseRow, TrackedRow } from "@/lib/db/types";
 import { timeAgo } from "@/lib/format";
@@ -57,12 +58,24 @@ export default async function Dashboard() {
   const activity = (activityRes.data ?? []) as ActivityRow[];
   const purchases = (purchasesRes.data ?? []) as PurchaseRow[];
 
-  const productIds = [...new Set([...tracked.map((t) => t.product_id), ...purchases.map((p) => p.product_id)])];
+  // A deal can belong to a product outside the 12 most recent, so fetch those too.
+  const shownTracked = new Set(tracked.map((t) => t.id));
+  const missingTrackedIds = [...new Set(alerts.map((a) => a.tracked_product_id))].filter((id) => !shownTracked.has(id));
+  const { data: extraTracked } = missingTrackedIds.length
+    ? await supabase.from("tracked_products").select("*").in("id", missingTrackedIds)
+    : { data: [] };
+  const allTracked = [...tracked, ...((extraTracked ?? []) as TrackedRow[])];
+
+  const productIds = [...new Set([...allTracked.map((t) => t.product_id), ...purchases.map((p) => p.product_id)])];
   const { data: productData } = productIds.length
     ? await supabase.from("products").select("*").in("id", productIds)
     : { data: [] };
   const products = new Map(((productData ?? []) as ProductRow[]).map((p) => [p.id, p]));
-  const trackedById = new Map(tracked.map((t) => [t.id, t]));
+  const trackedById = new Map(allTracked.map((t) => [t.id, t]));
+  // Keep each product's deals together, cheapest first.
+  const sortedAlerts = [...alerts].sort(
+    (a, b) => a.tracked_product_id.localeCompare(b.tracked_product_id) || a.price_cents - b.price_cents,
+  );
   const { data: alertObs } = alerts.length
     ? await supabase.from("price_observations").select("*").in("id", alerts.map((a) => a.observation_id))
     : { data: [] };
@@ -87,29 +100,22 @@ export default async function Dashboard() {
       </div>
 
       {alerts.length > 0 && (
-        <Section title="Deals waiting for you">
+        <Section title={`Deals waiting for you (${alerts.length})`}>
+          <p className="-mt-1 text-sm text-muted-foreground">These prices are as last observed. We re-check the live price before preparing a checkout.</p>
           <ul className="grid gap-3 md:grid-cols-2">
-            {alerts.map((a) => {
+            {sortedAlerts.map((a) => {
               const t = trackedById.get(a.tracked_product_id);
-              const p = t ? products.get(t.product_id) : undefined;
-              const o = obsById.get(a.observation_id);
+              const siblings = alerts.filter((x) => x.tracked_product_id === a.tracked_product_id);
+              const isLowest = siblings.length > 1 && a.price_cents === Math.min(...siblings.map((x) => x.price_cents));
               return (
                 <li key={a.id}>
-                  <Link href={`/deals/${a.id}`} className="flex items-center gap-3 rounded-2xl border-2 border-deal/40 bg-card p-3 hover:border-deal">
-                    <ProductTile title={p?.title ?? "Product"} imageUrl={p?.image_url ?? null} className="size-16" />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">{p?.title ?? "Tracked product"}</p>
-                      <p className="tnum text-sm">
-                        <span className="font-semibold">{formatCents(a.price_cents, t?.currency ?? "USD")}</span>{" "}
-                        <span className="break-all text-muted-foreground">at {a.domain}</span>
-                      </p>
-                      <p className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-                        Observed {timeAgo(o?.observed_at ?? a.created_at)}
-                        {o?.source === "demo_simulation" && <SimulationBadge />}
-                        {o?.source === "seed" && <DemoCatalogueBadge />}
-                      </p>
-                    </div>
-                  </Link>
+                  <DealCard
+                    alert={a}
+                    tracked={t}
+                    product={t ? products.get(t.product_id) : undefined}
+                    observation={obsById.get(a.observation_id)}
+                    lowestOf={isLowest ? siblings.length : undefined}
+                  />
                 </li>
               );
             })}
