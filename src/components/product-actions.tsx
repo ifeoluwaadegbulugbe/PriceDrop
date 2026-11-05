@@ -148,7 +148,7 @@ export function SimulatePanel({ trackedId, currency }: { trackedId: string; curr
         <h3 className="text-sm font-semibold">Try a price change</h3>
         <SimulationBadge />
       </div>
-      <p className="text-xs text-muted-foreground">Runs the normal pipeline with a made-up retailer price at the lowest-priced retailer. It lasts about 2 hours and stays labelled as a simulation.</p>
+      <p className="text-xs text-muted-foreground">Runs the normal pipeline with a made-up retailer price at the lowest-priced in-stock retailer. It lasts about 2 hours and stays labelled as a simulation.</p>
       <div className="flex items-end gap-2">
         <div className="grid flex-1 gap-1.5">
           <Label htmlFor="sim-price">Simulated price ({currency})</Label>

@@ -27,10 +27,10 @@ Implemented: shipping unknown stays in `unknown`, is never added to `passed`, fa
 does not block `qualifies`. The deal and checkout pages say the total could be higher and that the charge is the item price only.
 Any other unknown (stock, variant) still gives `insufficient_info`. To change this, edit `blockingUnknown` in `src/lib/evaluation/evaluate.ts`.
 
-## Channel3 (no key: never called)
-- **Price units.** `Price.price` is a plain number. Filter docs say "in dollars and cents", response docs state no unit. Major units assumed. Check against one real response; a wrong assumption would be off by 100x.
-- `tests/fixtures/channel3-product.synthetic.json` is hand-written from the types, not recorded.
-- Product model page rendered title-only; field names come from SDK types and OpenAPI.
+## Channel3 (real calls made 2026-11-05)
+- **Price units: confirmed major units** from real responses. `tests/fixtures/channel3-product.recorded.json` is a real response with URL query strings removed. The synthetic fixture remains for malformed-data cases.
+- **Offer URLs are affiliate-tracked** per Channel3's skill docs (`buy.trychannel3.com`). "View retailer" uses them, so sales through that link may earn commission on your account. The UI doesn't currently disclose this.
+- `.agents/skills/channel3-api` is Channel3's own agent documentation, installed on request. The installer's scanner listed it as Gen Safe, Socket 0 alerts, Snyk Med Risk. Reading it found only docs, no scripts. It isn't used at runtime.
 - `GET /v1/products/{id}` can return 429 with an unquantified limit. Monitoring is bounded to 50 per run at concurrency 4.
 - Long-term storage of price observations: the caching guide discourages long-lived caching of full product data. Observations are timestamped history and are never shown as current. Not explicitly addressed by their docs.
 - `products.image_url` is stored as display metadata, refreshed only when tracking starts, and may go stale. Docs: don't assume image URLs are permanent.

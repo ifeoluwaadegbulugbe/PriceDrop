@@ -136,6 +136,16 @@ describe("demo simulation goes through the same pipeline", () => {
     expect(t.status).toBe("deal_found");
   });
 
+  it("simulates at the cheapest in-stock retailer, skipping a cheaper out-of-stock one", async () => {
+    const user = await newUser();
+    const { tracked } = await createTracking(deps, user, { ...seed, externalId: "seed-asus-zenbook-14", targetPriceCents: 70000, maxTotalCents: 90000 });
+    advance(1000);
+    const r = await simulatePrice(deps, user, tracked.id, 65000);
+    expect(r.alertsCreated).toBe(1);
+    const { data } = await db.from("deal_alerts").select("domain").eq("tracked_product_id", tracked.id);
+    expect(data![0].domain).toBe("lumen-market.example");
+  });
+
   it("does not exist outside demo mode", async () => {
     const user = await newUser();
     const { tracked } = await createTracking(deps, user, { ...seed, targetPriceCents: 7000, maxTotalCents: 9000 });

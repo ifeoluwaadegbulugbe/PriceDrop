@@ -46,11 +46,20 @@ export function ProductResults({
 }) {
   const [target, setTarget] = useState<SheetTarget | null>(null);
   const fetched = new Date(fetchedAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  const lowest = (p: ProductCard) => Math.min(...p.offers.map((o) => o.priceCents), Number.MAX_SAFE_INTEGER);
+  // Within budget first, keeping relevance order. Over-budget items stay: tracking one until it drops is valid.
+  const ordered =
+    suggestedTargetCents === undefined
+      ? products
+      : [
+          ...products.filter((p) => lowest(p) <= suggestedTargetCents),
+          ...products.filter((p) => lowest(p) > suggestedTargetCents),
+        ];
 
   return (
     <>
       <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {products.map((p) => {
+        {ordered.map((p) => {
           const sorted = [...p.offers].sort((a, b) => a.priceCents - b.priceCents);
           const low = sorted[0];
           return (

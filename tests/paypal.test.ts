@@ -3,6 +3,7 @@ import { centsToPaypalValue, majorToCents, moneyStringToCents } from "@/lib/mone
 import { assertSandboxUrl, createPaypalClient, PaypalError, PaypalLiveEndpointError } from "@/lib/paypal/client";
 import { normalizeProduct } from "@/lib/channel3/normalize";
 import fixture from "./fixtures/channel3-product.synthetic.json";
+import recorded from "./fixtures/channel3-product.recorded.json";
 
 describe("money", () => {
   it("formats PayPal values with integers only", () => {
@@ -125,6 +126,15 @@ describe("paypal client", () => {
     const bad = createPaypalClient({ clientId: "i", clientSecret: "s", fetchImpl: fakeFetch(() => Response.json({ verification_status: "FAILURE" })) });
     expect(await bad.verifyWebhookSignature({ headers: h, event: {}, webhookId: "w" })).toBe(false);
     expect(await ok.verifyWebhookSignature({ headers: new Headers(), event: {}, webhookId: "w" })).toBe(false);
+  });
+});
+
+describe("channel3 normalize (recorded response)", () => {
+  const card = normalizeProduct(recorded as never);
+  it("reads a real product: prices are major units", () => {
+    expect(card).toMatchObject({ id: "Dvyavcy", source: "channel3", brand: "Sony" });
+    expect(card.imageUrl).toContain("cdn.trychannel3.com/cleaned/");
+    expect(card.offers[0]).toMatchObject({ domain: "officedepot.com", priceCents: 2499, currency: "USD", inStock: true, shippingCents: null });
   });
 });
 

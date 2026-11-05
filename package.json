@@ -17,7 +17,8 @@
     "dev:local": "node scripts/local/next.mjs dev",
     "build:local": "node scripts/local/next.mjs build",
     "start:local": "node scripts/local/next.mjs start",
-    "test:bundle": "tsx scripts/check-bundle.ts"
+    "test:bundle": "tsx scripts/check-bundle.ts",
+    "channel3:smoke": "tsx scripts/channel3-smoke.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

@@ -1,0 +1,43 @@
+{
+  "_recorded": "Real GET /v1/products/{id} response, 2026-11-05. Query strings removed from URLs; descriptive fields trimmed.",
+  "id": "Dvyavcy",
+  "title": "MDR-ZX310 On-Ear Headphones",
+  "brands": [
+    {
+      "id": "PURH",
+      "name": "Sony"
+    }
+  ],
+  "images": [
+    {
+      "url": "https://cdn.trychannel3.com/82d582ec-bf5a-4b86-b2a8-a19856513f4b",
+      "cleaned_url": "https://cdn.trychannel3.com/cleaned/v1/82d582ec-bf5a-4b86-b2a8-a19856513f4b",
+      "is_main_image": true,
+      "shot_type": "hero",
+      "alt_text": "Black Sony wired on-ear headphones on a white background."
+    },
+    {
+      "url": "https://cdn.trychannel3.com/4d671d8a-587c-4b11-b43a-49445554fe5a",
+      "cleaned_url": "https://cdn.trychannel3.com/cleaned/v1/4d671d8a-587c-4b11-b43a-49445554fe5a",
+      "is_main_image": false,
+      "shot_type": "hero",
+      "alt_text": "Black wired on-ear headphones with cable."
+    }
+  ],
+  "offers": [
+    {
+      "url": "https://buy.trychannel3.com/Dvyavcy-6Uzl-YHLVUm",
+      "domain": "officedepot.com",
+      "price": {
+        "price": 24.99,
+        "compare_at_price": null,
+        "currency": "USD"
+      },
+      "availability": "InStock",
+      "condition": "new",
+      "max_commission_rate": 0.035,
+      "dimensions": null
+    }
+  ],
+  "variants": null
+}

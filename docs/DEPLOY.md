@@ -25,7 +25,7 @@ Put values in `.env.local` or the Vercel dashboard. Never paste them into chat o
 Never set `ALLOW_LIVE_PAYPAL`.
 
 ## 3. Optional keys
-- Channel3: key from trychannel3.com. Without it the labelled Demo catalogue is used. When you first have a key, check one response's price units (`docs/UNVERIFIED.md`).
+- Channel3: key from trychannel3.com. Without it the labelled Demo catalogue is used. Check it with `npm run channel3:smoke` (costs 1 credit). Add it to Vercel and redeploy.
 - Gemini: key from aistudio.google.com, no billing. Set `LLM_ENABLED=true`. Free-tier content may be used by Google. The app strips emails and phone numbers before sending.
 
 ## 4. Vercel (Hobby)

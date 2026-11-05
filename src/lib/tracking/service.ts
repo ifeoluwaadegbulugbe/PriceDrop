@@ -138,11 +138,12 @@ export async function simulatePrice(deps: Deps, userId: string, id: string, pric
   const tracked = await loadOwnedTracked(deps, userId, id);
   const { data } = await deps.db
     .from("price_observations")
-    .select("domain,price_cents")
+    .select("domain,price_cents,in_stock")
     .eq("tracked_product_id", id)
-    .order("price_cents", { ascending: true })
-    .limit(1);
-  const domain = (data?.[0] as { domain: string } | undefined)?.domain;
+    .order("price_cents", { ascending: true });
+  // Cheapest retailer that isn't out of stock, or a simulated drop could never become a deal.
+  const rows = (data ?? []) as { domain: string; in_stock: boolean | null }[];
+  const domain = (rows.find((r) => r.in_stock !== false) ?? rows[0])?.domain;
   if (!domain) throw new ApiError(409, "no_baseline", "This product has no observations to simulate against yet.");
   return checkTracked(deps, tracked, { trigger: "demo", simulate: { domain, priceCents } });
 }
