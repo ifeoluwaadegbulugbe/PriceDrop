@@ -33,7 +33,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           Demo mode is on. Anything marked Demo simulation uses a made-up retailer price.
         </p>
       )}
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:py-8">{children}</main>
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-5 pb-24 sm:pt-8 md:pb-10">{children}</main>
     </div>
   );
 }

@@ -26,6 +26,8 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
   --color-deal: var(--deal);
   --color-deal-soft: var(--deal-soft);
   --color-caution: var(--caution);
@@ -47,6 +49,8 @@
   --card-foreground: oklch(0.2 0.012 265);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.2 0.012 265);
+  --brand: oklch(0.46 0.2 264);
+  --brand-soft: oklch(0.945 0.02 264);
   --primary: oklch(0.46 0.2 264);
   --primary-foreground: oklch(0.99 0 0);
   --secondary: oklch(0.955 0.005 265);
@@ -76,6 +80,8 @@
     --card-foreground: oklch(0.96 0.004 265);
     --popover: oklch(0.23 0.013 265);
     --popover-foreground: oklch(0.96 0.004 265);
+    --brand: oklch(0.72 0.14 264);
+    --brand-soft: oklch(0.3 0.05 264);
     --primary: oklch(0.72 0.14 264);
     --primary-foreground: oklch(0.16 0.02 265);
     --secondary: oklch(0.27 0.013 265);

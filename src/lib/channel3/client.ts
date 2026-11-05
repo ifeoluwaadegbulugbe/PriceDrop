@@ -7,6 +7,8 @@ export type SearchOptions = {
   currency?: string;
   minCents?: number;
   maxCents?: number;
+  /** Real Channel3 category slugs. Unknown slugs are silently dropped by the API. */
+  categorySlugs?: string[];
 };
 
 export interface Channel3Gateway {
@@ -22,7 +24,7 @@ export function createChannel3Gateway(apiKey: string): Channel3Gateway {
   const client = new Channel3({ apiKey });
   const options = { timeoutInSeconds: 8, maxRetries: 1 };
   return {
-    async search({ query, limit = 12, currency, minCents, maxCents }) {
+    async search({ query, limit = 12, currency, minCents, maxCents, categorySlugs }) {
       const price =
         minCents !== undefined || maxCents !== undefined
           ? {
@@ -34,7 +36,9 @@ export function createChannel3Gateway(apiKey: string): Channel3Gateway {
         {
           query,
           limit,
-          ...(price ? { filters: { price } } : {}),
+          ...(price || categorySlugs?.length
+            ? { filters: { ...(price ? { price } : {}), ...(categorySlugs?.length ? { category_ids: categorySlugs } : {}) } }
+            : {}),
           ...(currency ? { config: { currency: currency as Currency } } : {}),
         },
         options,

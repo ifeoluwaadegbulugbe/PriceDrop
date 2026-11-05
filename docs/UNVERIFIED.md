@@ -27,6 +27,14 @@ Implemented: shipping unknown stays in `unknown`, is never added to `passed`, fa
 does not block `qualifies`. The deal and checkout pages say the total could be higher and that the charge is the item price only.
 Any other unknown (stock, variant) still gives `insufficient_info`. To change this, edit `blockingUnknown` in `src/lib/evaluation/evaluate.ts`.
 
+## Decisions from the shopping brief
+
+- **Brand colour:** the briefs call `#E8557A` the existing brand. The app's brand is cobalt blue, and the owner asked to keep it, so the briefs are overridden.
+- **Buy now** lets a shopper check out at the current price with no qualifying deal. This is deliberate, at the owner's request. It re-fetches the live offer, the server computes the amount, and nothing is charged until approval at PayPal.
+- **Notifications:** only in-app exists, so onboarding offers only that and never asks for browser permission.
+- **Editing a target can create a deal.** If the current price is already at or below a raised target, a real alert appears, labelled "isn't a price drop". No price observation is written and no drop is claimed.
+- **Target reached** requires a price observed within 24 hours. An older one shows "May be out of date".
+
 ## Channel3 (real calls made 2026-11-05)
 - **Price units: confirmed major units** from real responses. `tests/fixtures/channel3-product.recorded.json` is a real response with URL query strings removed. The synthetic fixture remains for malformed-data cases.
 - **Offer URLs are affiliate-tracked** per Channel3's skill docs (`buy.trychannel3.com`). "View retailer" uses them, so sales through that link may earn commission on your account. The UI doesn't currently disclose this.

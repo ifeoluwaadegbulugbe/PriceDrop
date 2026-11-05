@@ -42,7 +42,7 @@ export function CheckoutPanel({
   status,
   approveUrl,
   expiresAt,
-  alertId,
+  backHref,
   failureReason,
   paypalParam,
 }: {
@@ -50,7 +50,7 @@ export function CheckoutPanel({
   status: OrderStatus;
   approveUrl: string | null;
   expiresAt: string;
-  alertId: string;
+  backHref: string;
   failureReason: string | null;
   paypalParam: "return" | "cancel" | null;
 }) {
@@ -175,19 +175,19 @@ export function CheckoutPanel({
       {status === "failed" && (
         <div className="grid gap-2">
           <p className="text-sm">PayPal didn&apos;t complete this payment{failureReason ? ` (${failureReason.toLowerCase().replace(/_/g, " ")})` : ""}. Nothing is recorded as purchased.</p>
-          <div><Link href={`/deals/${alertId}`} className={buttonVariants({ size: "lg", variant: "outline" })}>Back to the deal</Link></div>
+          <div><Link href={backHref} className={buttonVariants({ size: "lg", variant: "outline" })}>Go back</Link></div>
         </div>
       )}
       {status === "expired" && (
         <div className="grid gap-2">
           <p className="text-sm">This checkout expired. Nothing was charged.</p>
-          <div><Link href={`/deals/${alertId}`} className={buttonVariants({ size: "lg", variant: "outline" })}>Back to the deal</Link></div>
+          <div><Link href={backHref} className={buttonVariants({ size: "lg", variant: "outline" })}>Go back</Link></div>
         </div>
       )}
       {status === "cancelled" && (
         <div className="grid gap-2">
           <p className="text-sm">You cancelled this checkout. Nothing was charged.</p>
-          <div><Link href={`/deals/${alertId}`} className={buttonVariants({ size: "lg", variant: "outline" })}>Back to the deal</Link></div>
+          <div><Link href={backHref} className={buttonVariants({ size: "lg", variant: "outline" })}>Go back</Link></div>
         </div>
       )}
     </div>

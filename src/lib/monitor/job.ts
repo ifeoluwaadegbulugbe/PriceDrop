@@ -1,6 +1,7 @@
 import { reconcileOrders } from "@/lib/checkout/service";
 import type { TrackedRow } from "@/lib/db/types";
 import type { Deps } from "@/lib/deps";
+import { warmOneCategory } from "@/lib/discovery/service";
 import { checkTracked } from "./check";
 
 export const MONITOR_BATCH = 50;
@@ -51,6 +52,7 @@ export async function runMonitor(deps: Deps): Promise<MonitorSummary> {
   await Promise.all(Array.from({ length: CONCURRENCY }, worker));
 
   summary.ordersReconciled = await reconcileOrders(deps).catch(() => 0);
+  await warmOneCategory(deps).catch(() => null);
   await deps.db.rpc("prune_counters").then(() => undefined, () => undefined);
   return summary;
 }

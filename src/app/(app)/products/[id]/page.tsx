@@ -79,7 +79,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
               <p className="text-sm break-all text-muted-foreground">
                 at {best.domain}
                 {best.url && (
-                  <> · <a href={best.url} target="_blank" rel="noopener noreferrer nofollow" className="text-primary hover:underline">View retailer</a></>
+                  <> · <a href={best.url} target="_blank" rel="noopener noreferrer nofollow sponsored" className="text-primary hover:underline">View retailer</a></>
                 )}
               </p>
               <p className="text-xs text-muted-foreground">Fetched {dateTime(snap.fetchedAt)}</p>
@@ -108,6 +108,13 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
             </Link>
           ))}
         </div>
+      )}
+
+      {tracked.status !== "purchased" && (
+        <p className="text-sm text-muted-foreground">
+          Don&apos;t want to wait?{" "}
+          <Link href={`/shop/${product.source}/${encodeURIComponent(product.external_id)}`} className="font-medium text-primary hover:underline">Buy at the current price</Link>
+        </p>
       )}
 
       <ProductActions
@@ -186,6 +193,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
 
       <footer className="grid gap-2 border-t pt-4 text-sm text-muted-foreground">
         <p>Last checked {timeAgo(tracked.last_checked_at)}. Automatic checks run about every 30 minutes (best effort).</p>
+        {product.source === "channel3" && <p className="text-xs">Retailer links may earn PriceDrop a commission.</p>}
         {tracked.status === "paused" && <p>Automatic checks are paused for this product.</p>}
         {behind && (
           <p role="status" className="rounded-lg bg-caution-soft px-3 py-2 text-caution">

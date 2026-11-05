@@ -12,7 +12,7 @@ export type SearchResult = {
   fetchedAt: string;
 };
 
-export type SearchFilters = { brand?: string; minCents?: number; maxCents?: number; currency?: string };
+export type SearchFilters = { brand?: string; minCents?: number; maxCents?: number; currency?: string; categorySlugs?: string[]; seedTerms?: string[] };
 
 function lowestPrice(p: ProductCard): number | null {
   const prices = p.offers.map((o) => o.priceCents);
@@ -30,11 +30,19 @@ function applyFilters(products: ProductCard[], f: SearchFilters): ProductCard[] 
   });
 }
 
+/** Inside a category, the Demo catalogue is limited to that category's items. */
+function seedMatches(query: string, filters: SearchFilters): ProductCard[] {
+  const results = searchSeed(query);
+  if (!filters.seedTerms) return results;
+  const inCategory = new Set(filters.seedTerms.flatMap((t) => searchSeed(t)).map((c) => c.id));
+  return results.filter((c) => inCategory.has(c.id));
+}
+
 /** Search Channel3 inside the monthly budget. On no key, exhausted budget, or API error, use the demo catalogue. */
 export async function searchCatalogue(deps: Deps, query: string, filters: SearchFilters): Promise<SearchResult> {
   const fetchedAt = deps.now().toISOString();
   const seed = (fallbackReason: FallbackReason): SearchResult => ({
-    products: applyFilters(searchSeed(query), filters),
+    products: applyFilters(seedMatches(query, filters), filters),
     source: "seed",
     fallbackReason,
     fetchedAt,
@@ -50,6 +58,7 @@ export async function searchCatalogue(deps: Deps, query: string, filters: Search
       currency: filters.currency,
       minCents: filters.minCents,
       maxCents: filters.maxCents,
+      categorySlugs: filters.categorySlugs,
     });
     return { products: applyFilters(products, filters), source: "channel3", fallbackReason: null, fetchedAt };
   } catch {

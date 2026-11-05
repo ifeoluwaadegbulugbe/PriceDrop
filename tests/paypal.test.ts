@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { centsToPaypalValue, majorToCents, moneyStringToCents } from "@/lib/money";
 import { assertSandboxUrl, createPaypalClient, PaypalError, PaypalLiveEndpointError } from "@/lib/paypal/client";
 import { normalizeProduct } from "@/lib/channel3/normalize";
+import { paypalSetupStatusFor } from "@/lib/paypal/statusMessage";
 import fixture from "./fixtures/channel3-product.synthetic.json";
 import recorded from "./fixtures/channel3-product.recorded.json";
 
@@ -126,6 +127,25 @@ describe("paypal client", () => {
     const bad = createPaypalClient({ clientId: "i", clientSecret: "s", fetchImpl: fakeFetch(() => Response.json({ verification_status: "FAILURE" })) });
     expect(await bad.verifyWebhookSignature({ headers: h, event: {}, webhookId: "w" })).toBe(false);
     expect(await ok.verifyWebhookSignature({ headers: new Headers(), event: {}, webhookId: "w" })).toBe(false);
+  });
+});
+
+describe("paypal setup check", () => {
+  const make = (over: Partial<Parameters<typeof paypalSetupStatusFor>[0]>) => paypalSetupStatusFor({ auth: "ok", appUrl: "https://shop.example", production: true, ...over });
+  it("is happy only with good credentials and a real return address", () => {
+    expect(make({}).ok).toBe(true);
+    expect(make({ auth: "rejected" })).toMatchObject({ ok: false, message: expect.stringMatching(/client ID and secret/) });
+    expect(make({ auth: "unreachable" })).toMatchObject({ ok: false, message: expect.stringMatching(/couldn't reach/) });
+    expect(make({ appUrl: "http://localhost:3000" })).toMatchObject({ ok: false, message: expect.stringMatching(/NEXT_PUBLIC_APP_URL/) });
+    expect(make({ appUrl: "http://localhost:3000", production: false }).ok).toBe(true);
+  });
+  it("checkAuth reports what happened and creates nothing", async () => {
+    const ok = createPaypalClient({ clientId: "i", clientSecret: "s", fetchImpl: fakeFetch(() => Response.json({})) });
+    expect(await ok.checkAuth()).toBe("ok");
+    const rejected = createPaypalClient({ clientId: "i", clientSecret: "s", fetchImpl: (async () => Response.json({ error: "invalid_client" }, { status: 401 })) as unknown as typeof fetch });
+    expect(await rejected.checkAuth()).toBe("rejected");
+    const down = createPaypalClient({ clientId: "i", clientSecret: "s", fetchImpl: (async () => { throw new Error("network"); }) as unknown as typeof fetch });
+    expect(await down.checkAuth()).toBe("unreachable");
   });
 });
 

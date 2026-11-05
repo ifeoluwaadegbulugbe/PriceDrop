@@ -25,6 +25,8 @@
     "@channel3/sdk": "^4.8.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.119.0",
+    "ag-grid-community": "^36.3.0",
+    "ag-grid-react": "^36.3.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.2",
     "lucide-react": "^1.69.0",

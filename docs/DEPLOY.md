@@ -4,7 +4,7 @@ Put values in `.env.local` or the Vercel dashboard. Never paste them into chat o
 
 ## 1. Supabase
 1. Create a free project at supabase.com.
-2. SQL Editor: run `supabase/migrations/0001_init.sql`, then `0002_functions.sql`. Or use `npx supabase link` and `npx supabase db push`.
+2. SQL Editor: run `supabase/migrations/0001_init.sql`, then `0002_functions.sql`, then `0003_shopping.sql`. **On an existing project, run `0003_shopping.sql` before deploying code that needs it.** Or use `npx supabase link` and `npx supabase db push`.
 3. Authentication > Sign In / Providers > Email: turn off **Confirm email** for a demo. Built-in email has low limits. If left on, add `<APP_URL>/auth/callback` to the redirect URLs.
 4. Project Settings > API: copy the URL, the anon or publishable key, and the service role or secret key.
 5. Locally, with those in `.env.local`:
@@ -55,6 +55,10 @@ DEMO_USER_EMAIL=you@example.com DEMO_USER_PASSWORD=choose-one npm run seed:demo
 ```
 
 ## Troubleshooting
+- "PayPal rejected this site's sandbox credentials": the client ID or secret in Vercel is wrong, or from Live rather than Sandbox. Redeploy after fixing it.
+- Any other PayPal error shows PayPal's code and reference on screen. It also appears in Vercel's logs as `paypal_create_failed`, and in the Supabase SQL Editor:
+  `select failure_reason, created_at from paypal_orders where status = 'failed' order by created_at desc limit 5;`
+- Home page has no categories: `0003_shopping.sql` hasn't been run.
 - Signup shows "check your email": confirmation is on (step 1.3).
 - Checkout says PayPal isn't configured: missing client ID or secret.
 - App refuses to start, naming `PAYPAL_BASE_URL`: it isn't a sandbox URL. That is the guard working.

@@ -57,3 +57,18 @@ Monitor, Check now, baseline and demo simulation all call `checkTracked`: fetch 
 
 ## Local emulator (`scripts/local/`)
 Never imported by `src/`. PGlite runs the real migrations with real RLS, behind a PostgREST and GoTrue subset, plus a fake PayPal. It exists because no accounts or Docker were available. It proves our logic, not third-party behaviour.
+
+## Shopping and discovery (`lib/discovery`)
+Categories are rows in `categories`, each mapped to real Channel3 category slugs, so adding one needs no new page. Category pages query Channel3 by slug.
+
+To stay inside 1,000 free credits: product ID lists are cached for 48 hours, prices come from the free retrieve call and are reused for at most 30 minutes with their true fetched time, and the monitor warms at most one stale category per run while under 60% of the monthly budget. The existing budget guard covers every paid call.
+
+"Verified price drops" come from `trending_price_drops()`: the latest observation is at least 1% below the one before it, at the same retailer, both from a real source, in the last 7 days. A retailer's "compare at" price is never used.
+
+## Buy now
+`buyNow` shares the order state machine, PayPal client and `finalize_capture` with deal checkouts. Such an order has no `deal_alert_id` and carries `product_id` and `retailer_domain` instead. A live order is reused only if its amount still matches the current price.
+
+## Price Intelligence (`lib/intelligence`)
+`rows.ts` turns tracked products and recorded observations into rows with pure, integer-only functions. The AG Grid on desktop and the cards on phones render the same rows through the same filter and sort functions.
+
+The AI question box: the model may only fill a strict Zod schema of filter and sort options. Extra fields are rejected, a price must literally appear in the question, and any failure falls back to a keyword parser. The route loads rows through the shopper's own RLS client, code picks the matching rows, and the answer's figures are written by code. It is read-only and has no route to payments.

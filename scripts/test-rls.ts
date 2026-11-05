@@ -137,12 +137,39 @@ async function main() {
     const c1 = await a.client.from("usage_counters").select("*");
     check("client cannot read usage_counters", !!c1.error);
 
+    // Shopping tables: saved items and recently viewed are private and server-written.
+    await admin.from("saved_products").insert({ user_id: a.id, product_id: product.id });
+    await admin.from("recently_viewed").insert({ user_id: a.id, product_id: product.id });
+    for (const t of ["saved_products", "recently_viewed"]) {
+      check(`A can read own ${t}`, (await readable(a.client, t, "user_id", a.id)) === 1);
+      check(`B cannot read A's ${t}`, (await readable(b.client, t, "user_id", a.id)) === 0);
+      check(`anon cannot read ${t}`, (await readable(anonClient, t, "user_id", a.id)) === 0);
+      const w = await a.client.from(t).insert({ user_id: a.id, product_id: product.id });
+      check(`owner cannot write ${t} directly`, !!w.error);
+    }
+    check("client cannot read discovery_cache", !!(await a.client.from("discovery_cache").select("*")).error);
+    check("client cannot write discovery_cache", !!(await a.client.from("discovery_cache").insert({ key: "x", value: {} })).error);
+    const cats = await a.client.from("categories").select("slug");
+    check("signed-in user can read categories", !cats.error && (cats.data?.length ?? 0) > 12);
+    check("anon cannot read categories", (await anonClient.from("categories").select("slug")).error !== null);
+    check("client cannot write categories", !!(await a.client.from("categories").insert({ slug: "x", name: "x", search_query: "x" })).error);
+    check("client cannot call trending_price_drops", !!(await a.client.rpc("trending_price_drops", { p_since: new Date().toISOString(), p_limit: 1, p_include_simulated: true })).error);
+    check("client cannot call popular_products", !!(await a.client.rpc("popular_products", { p_min_users: 1, p_limit: 1 })).error);
+    const own = await a.client.from("profiles").update({ interests: ["beauty"] }).eq("id", a.id);
+    const saved = await admin.from("profiles").select("interests").eq("id", a.id).single();
+    check("owner can update own interests", !own.error && saved.data?.interests?.[0] === "beauty");
+    await b.client.from("profiles").update({ interests: ["forged"] }).eq("id", a.id);
+    const after = await admin.from("profiles").select("interests").eq("id", a.id).single();
+    check("B cannot change A's interests", after.data?.interests?.[0] === "beauty");
+
     // State machine trigger: captured is terminal. Run even with the service role.
     await admin.from("paypal_orders").update({ status: "expired" }).eq("id", order.id);
     const back = await admin.from("paypal_orders").update({ status: "approved" }).eq("id", order.id);
     check("illegal transition rejected by DB even for service role", !!back.error);
 
     // Cleanup for the --env target.
+    await admin.from("saved_products").delete().eq("user_id", a.id);
+    await admin.from("recently_viewed").delete().eq("user_id", a.id);
     await admin.from("purchases").delete().eq("id", purchase.id);
     await admin.from("tracked_products").delete().eq("id", tracked.id);
     await admin.from("products").delete().eq("id", product.id);

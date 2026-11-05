@@ -4,9 +4,9 @@ import { Logo } from "@/components/logo";
 import { buttonVariants } from "@/components/ui/button";
 
 const STEPS = [
-  { title: "Say what you want", body: "\"Sony headphones, no more than $90.\" Plain language. You check what we understood before anything happens." },
-  { title: "We watch the prices", body: "Pick a product and set your rules. We check about every 30 minutes, record each price, and show you when we last looked." },
-  { title: "You decide when to buy", body: "When an offer meets your rules, we show you why, rule by rule. Nothing is paid until you approve it at PayPal." },
+  { title: "Find it", body: "Browse by category, or just describe what you want in your own words." },
+  { title: "Track it", body: "Set the price you'd pay. We check about every 30 minutes, record each price, and show you when we last looked." },
+  { title: "Get it for less", body: "When an offer meets your rules, we show you why. Nothing is paid until you approve it at PayPal." },
 ];
 
 export default function Landing() {
@@ -23,12 +23,12 @@ export default function Landing() {
       <main className="flex-1">
         <section className="mx-auto grid max-w-6xl items-center gap-10 px-4 pt-10 pb-16 lg:grid-cols-[1.15fr_1fr] lg:pt-20">
           <div>
-            <h1 className="text-5xl leading-[1.02] font-semibold sm:text-6xl lg:text-7xl">The shopping agent that knows when to buy.</h1>
+            <h1 className="text-5xl leading-[1.02] font-semibold sm:text-6xl lg:text-7xl">Find it. Track it. Get it for less.</h1>
             <p className="mt-6 max-w-xl text-lg text-muted-foreground">
-              Tell PriceDrop what you want and what you&apos;re willing to pay. We&apos;ll watch the prices and help you act when the right deal appears.
+              Discover products, keep an eye on their prices and know when it&apos;s a good time to buy.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/signup" className={buttonVariants({ size: "lg", className: "h-12 px-6 text-base" })}>Start watching a price</Link>
+              <Link href="/signup" className={buttonVariants({ size: "lg", className: "h-12 px-6 text-base" })}>Get started</Link>
             </div>
           </div>
 

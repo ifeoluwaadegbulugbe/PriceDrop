@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const APP_PREFIXES = ["/dashboard", "/assistant", "/search", "/products", "/deals", "/checkout", "/purchases", "/settings", "/onboarding"];
+const APP_PREFIXES = ["/dashboard", "/assistant", "/search", "/products", "/deals", "/checkout", "/purchases", "/settings", "/onboarding", "/watchlist", "/categories", "/shop", "/price-intelligence"];
 
 /** Refreshes the session cookie and gates app pages. Routes and pages still verify the user themselves. */
 export async function proxy(request: NextRequest) {

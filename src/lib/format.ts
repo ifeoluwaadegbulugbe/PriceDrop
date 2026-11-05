@@ -26,3 +26,5 @@ export function centsToInput(cents: number | null | undefined): string {
   if (!cents) return "";
   return `${Math.trunc(cents / 100)}.${String(cents % 100).padStart(2, "0")}`;
 }
+
+export const shopHref = (source: string, id: string) => `/shop/${source}/${encodeURIComponent(id)}`;

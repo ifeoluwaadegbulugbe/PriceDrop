@@ -1,9 +1,11 @@
 import { createHash } from "node:crypto";
 import { logActivity, notify } from "@/lib/activity";
 import { ApiError, notFound } from "@/lib/api/errors";
+import { fetchProductCard } from "@/lib/catalogue";
 import type { AlertRow, OrderRow, OrderStatus, ProductRow, PurchaseRow, TrackedRow } from "@/lib/db/types";
 import type { Deps } from "@/lib/deps";
-import { evaluateDeal, type Evaluation } from "@/lib/evaluation/evaluate";
+import { upsertProduct } from "@/lib/discovery/service";
+import { evaluateDeal, normalizeDomain, type Evaluation } from "@/lib/evaluation/evaluate";
 import { currentOffers, latestObservation, rulesOf } from "@/lib/monitor/check";
 import { PaypalError, type PaypalApi, type PaypalOrder } from "@/lib/paypal/client";
 import { assertTransition, LIVE_STATUSES } from "./stateMachine";
@@ -57,8 +59,50 @@ async function transition(deps: Deps, order: OrderRow, to: OrderStatus, patch: P
   return fresh as OrderRow;
 }
 
-async function releaseAlert(deps: Deps, alertId: string) {
+/** A Buy now order has no alert, so there's nothing to release. */
+async function releaseAlert(deps: Deps, alertId: string | null) {
+  if (!alertId) return;
   await deps.db.from("deal_alerts").update({ status: "open" }).eq("id", alertId).eq("status", "checkout_prepared");
+}
+
+/** PayPal's reason, in words a person can act on. The name and reference help whoever runs this deployment. */
+export function paypalFailure(e: unknown): ApiError {
+  const name = e instanceof PaypalError ? e.paypalName : "PAYPAL_UNREACHABLE";
+  const issue = e instanceof PaypalError ? e.issue : null;
+  const debugId = e instanceof PaypalError ? e.debugId : null;
+  // Names and PayPal's reference only: no tokens, no credentials, no payloads.
+  console.error(`paypal_create_failed ${name} ${issue ?? ""} debug_id=${debugId ?? "none"}`);
+  const ref = [issue ?? name, debugId].filter(Boolean).join(", ");
+  const message =
+    name === "AUTHENTICATION_FAILURE"
+      ? "PayPal rejected this site's sandbox credentials, so no order was created. Nothing was charged. The PayPal client ID and secret need checking."
+      : name === "PAYPAL_UNREACHABLE"
+        ? "We couldn't reach PayPal, so no order was created. Nothing was charged. Please try again."
+        : `PayPal couldn't create the sandbox order. Nothing was charged. (PayPal said: ${ref})`;
+  return new ApiError(502, "paypal_create_failed", message, { paypalCode: name, ...(issue ? { paypalIssue: issue } : {}) });
+}
+
+async function createRemoteOrder(deps: Deps, paypal: PaypalApi, row: OrderRow): Promise<OrderRow> {
+  let created: PaypalOrder;
+  try {
+    created = await paypal.createOrder({
+      amountCents: row.amount_cents,
+      currency: row.currency,
+      requestId: row.idempotency_key,
+      returnUrl: `${deps.appUrl}/checkout/${row.id}?paypal=return`,
+      cancelUrl: `${deps.appUrl}/checkout/${row.id}?paypal=cancel`,
+      customId: row.id,
+    });
+  } catch (e) {
+    const failure = paypalFailure(e);
+    const reason = e instanceof PaypalError ? [e.paypalName, e.issue].filter(Boolean).join(":") : "paypal_unreachable";
+    await transition(deps, row, "failed", { failure_reason: reason });
+    throw failure;
+  }
+  return transition(deps, row, "payer_action_required", {
+    paypal_order_id: created.id,
+    approve_url: created.payerActionUrl,
+  });
 }
 
 // ---- prepare -----------------------------------------------------------------------------------
@@ -162,29 +206,92 @@ export async function prepareCheckout(deps: Deps, userId: string, alertId: strin
     row = data as OrderRow;
   }
 
-  let created: PaypalOrder;
-  try {
-    created = await paypal.createOrder({
-      amountCents: row.amount_cents,
-      currency: row.currency,
-      requestId: row.idempotency_key,
-      returnUrl: `${deps.appUrl}/checkout/${row.id}?paypal=return`,
-      cancelUrl: `${deps.appUrl}/checkout/${row.id}?paypal=cancel`,
-      customId: row.id,
-    });
-  } catch (e) {
-    await transition(deps, row, "failed", { failure_reason: e instanceof PaypalError ? e.paypalName : "paypal_unreachable" });
-    throw new ApiError(502, "paypal_create_failed", "PayPal couldn't create the sandbox order. Nothing was charged. Please try again.");
-  }
-
-  const updated = await transition(deps, row, "payer_action_required", {
-    paypal_order_id: created.id,
-    approve_url: created.payerActionUrl,
-  });
+  const updated = await createRemoteOrder(deps, paypal, row);
   await deps.db.from("deal_alerts").update({ status: "checkout_prepared" }).eq("id", alert.id).eq("status", "open");
   await logActivity(deps.db, {
     user_id: userId, tracked_product_id: tracked.id, agent: "purchase", action: "checkout_prepared",
     output_summary: { amount_cents: updated.amount_cents, currency: updated.currency, retailer: alert.domain }, status: "ok",
+  });
+  return { order: updated, reused: false };
+}
+
+// ---- buy now -----------------------------------------------------------------------------------
+
+/**
+ * A sandbox checkout at the current price, whether or not it meets any rule. The person is choosing to pay it.
+ * Everything else holds: the client sends IDs only, the live offer is re-fetched and priced here, and nothing is
+ * charged until the buyer approves at PayPal.
+ */
+export async function buyNow(
+  deps: Deps,
+  userId: string,
+  ref: { source: "channel3" | "seed"; id: string; domain: string },
+  currency: string,
+): Promise<PrepareResult> {
+  const paypal = requirePaypal(deps);
+  let card;
+  try {
+    card = await fetchProductCard(deps, ref.source, ref.id, currency);
+  } catch {
+    throw new ApiError(502, "offer_unavailable", "We couldn't check the live price, so no checkout was prepared. Please try again.");
+  }
+  if (!card) throw notFound("That product");
+  const offer = card.offers.find((o) => o.domain === normalizeDomain(ref.domain));
+  if (!offer) throw new ApiError(409, "offer_gone", "That retailer no longer has an offer for this product.");
+  if (offer.inStock === false) throw new ApiError(409, "out_of_stock", "That retailer is out of stock right now.");
+
+  const product = await upsertProduct(deps, card);
+  const live = async () => {
+    const { data } = await deps.db
+      .from("paypal_orders")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("product_id", product.id)
+      .eq("retailer_domain", offer.domain)
+      .is("deal_alert_id", null)
+      .in("status", LIVE_STATUSES)
+      .limit(1);
+    return (data?.[0] as OrderRow | undefined) ?? null;
+  };
+
+  const amountCents = offer.priceCents + (offer.shippingCents ?? 0);
+  const existing = await live();
+  if (existing) {
+    const expired = new Date(existing.expires_at).getTime() <= deps.now().getTime();
+    if (!expired && existing.status === "creating") return { order: existing, reused: true };
+    // A live order at an old price must not be reused: the person should pay today's price.
+    if (!expired && existing.amount_cents === amountCents) return { order: existing, reused: true };
+    await transition(deps, existing, expired ? "expired" : "cancelled", expired ? {} : { failure_reason: "price_changed" });
+  }
+
+  const { count } = await deps.db
+    .from("paypal_orders")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("product_id", product.id);
+  const { data, error } = await deps.db
+    .from("paypal_orders")
+    .insert({
+      user_id: userId,
+      product_id: product.id,
+      retailer_domain: offer.domain,
+      idempotency_key: sha256(`direct:${userId}:${product.id}:${offer.domain}:${count ?? 0}`),
+      amount_cents: amountCents,
+      currency: offer.currency,
+      status: "creating",
+      expires_at: new Date(deps.now().getTime() + ORDER_TTL_MS).toISOString(),
+    })
+    .select()
+    .single();
+  if (error || !data) {
+    const winner = await live();
+    if (winner) return { order: winner, reused: true };
+    throw new Error("order_insert_failed");
+  }
+  const updated = await createRemoteOrder(deps, paypal, data as OrderRow);
+  await logActivity(deps.db, {
+    user_id: userId, agent: "purchase", action: "buy_now_prepared",
+    output_summary: { amount_cents: updated.amount_cents, currency: updated.currency, retailer: offer.domain }, status: "ok",
   });
   return { order: updated, reused: false };
 }
@@ -209,13 +316,19 @@ async function reload(deps: Deps, id: string): Promise<OrderRow> {
 const CAPTURED_MSG = "PayPal confirmed the sandbox capture. No real money moved and no retailer ships an item.";
 
 /** All side effects of a confirmed capture happen in one database transaction (finalize_capture). */
-async function finalize(deps: Deps, order: OrderRow, alert: AlertRow, captureId: string, cents: number, currency: string): Promise<CaptureResult> {
+async function retailerOf(deps: Deps, order: OrderRow): Promise<string> {
+  if (order.retailer_domain) return order.retailer_domain;
+  const { data } = await deps.db.from("deal_alerts").select("domain").eq("id", order.deal_alert_id).single();
+  return (data as { domain: string }).domain;
+}
+
+async function finalize(deps: Deps, order: OrderRow, domain: string, captureId: string, cents: number, currency: string): Promise<CaptureResult> {
   const { data, error } = await deps.db.rpc("finalize_capture", {
     p_order_row: order.id,
     p_capture_id: captureId,
     p_amount_cents: cents,
     p_currency: currency,
-    p_retailer_domain: alert.domain,
+    p_retailer_domain: domain,
   });
   if (error) throw new Error("finalize_failed");
   const already = (data as { already_captured?: boolean } | null)?.already_captured === true;
@@ -252,7 +365,7 @@ export async function captureCheckout(deps: Deps, userId: string, orderRowId: st
   if (!order.paypal_order_id) throw new ApiError(409, "order_not_ready", "This checkout is still being prepared.");
 
   const paypal = requirePaypal(deps);
-  const alert = await loadOwnedAlert(deps, userId, order.deal_alert_id);
+  const domain = await retailerOf(deps, order);
 
   let remote: PaypalOrder;
   try {
@@ -268,7 +381,7 @@ export async function captureCheckout(deps: Deps, userId: string, orderRowId: st
   if (remote.status === "COMPLETED") {
     const cap = remote.captures[0];
     if (cap?.status === "COMPLETED" && amountMatches(cap.amountCents, cap.currency)) {
-      return finalize(deps, order, alert, cap.id, cap.amountCents!, cap.currency!);
+      return finalize(deps, order, domain, cap.id, cap.amountCents!, cap.currency!);
     }
     if (cap?.status === "PENDING") {
       await transition(deps, order, order.status, { failure_reason: "capture_pending" });
@@ -301,7 +414,7 @@ export async function captureCheckout(deps: Deps, userId: string, orderRowId: st
         const again = await paypal.getOrder(order.paypal_order_id);
         const cap = again.captures[0];
         if (cap?.status === "COMPLETED" && amountMatches(cap.amountCents, cap.currency)) {
-          return finalize(deps, approved, alert, cap.id, cap.amountCents!, cap.currency!);
+          return finalize(deps, approved, domain, cap.id, cap.amountCents!, cap.currency!);
         }
       }
       return failOrder(deps, approved, e.issue ?? e.paypalName, "PayPal declined this sandbox payment. Nothing is recorded as purchased.", "declined");
@@ -316,7 +429,7 @@ export async function captureCheckout(deps: Deps, userId: string, orderRowId: st
       if (!amountMatches(cap.amountCents, cap.currency)) {
         return failOrder(deps, approved, "captured_amount_mismatch", "PayPal's captured amount didn't match this order, so it isn't recorded as a purchase.", "failed");
       }
-      return finalize(deps, approved, alert, cap.id, cap.amountCents!, cap.currency!);
+      return finalize(deps, approved, domain, cap.id, cap.amountCents!, cap.currency!);
     case "PENDING":
       await transition(deps, approved, "approved", { failure_reason: "capture_pending" });
       return { outcome: "pending", message: "PayPal says the capture is pending. This isn't a completed purchase yet.", order: await reload(deps, order.id), purchase: null };
@@ -361,8 +474,7 @@ export async function reconcileOrder(deps: Deps, order: OrderRow): Promise<void>
   } else if (remote.status === "COMPLETED") {
     const cap = remote.captures[0];
     if (cap?.status === "COMPLETED" && cap.amountCents === order.amount_cents && cap.currency === order.currency) {
-      const { data: alert } = await deps.db.from("deal_alerts").select("*").eq("id", order.deal_alert_id).single();
-      await finalize(deps, order, alert as AlertRow, cap.id, cap.amountCents, cap.currency);
+      await finalize(deps, order, await retailerOf(deps, order), cap.id, cap.amountCents, cap.currency);
     } else if (cap?.status === "DECLINED" || cap?.status === "FAILED") {
       await failOrder(deps, order, `capture_${cap.status.toLowerCase()}`, "PayPal declined this sandbox payment. Nothing is recorded as purchased.", "declined");
     }

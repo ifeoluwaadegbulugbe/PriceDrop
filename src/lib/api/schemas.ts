@@ -35,6 +35,15 @@ export const updateTrackingBody = z.strictObject({
   status: z.enum(["active", "paused"]).optional(),
 });
 
+export const savedBody = z.strictObject({ source: z.enum(["channel3", "seed"]), externalId: z.string().min(1).max(200) });
+
+export const buyBody = z.strictObject({
+  source: z.enum(["channel3", "seed"]),
+  externalId: z.string().min(1).max(200),
+  domain: z.string().min(1).max(253),
+});
+export const askBody = z.strictObject({ question: z.string().trim().min(1).max(300) });
+
 export const idParam = z.uuid();
 export const prepareBody = z.strictObject({ alertId: z.uuid() });
 export const orderBody = z.strictObject({ orderId: z.uuid() });

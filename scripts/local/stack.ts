@@ -197,7 +197,7 @@ async function handleRest(db: PGlite, req: Request, url: URL, who: Role): Promis
       else {
         const tgt = (p.get("on_conflict") ?? "id").split(",");
         const updates = cols.filter((c) => !tgt.includes(c.replace(/"/g, ""))).map((c) => `${c} = excluded.${c}`);
-        conflict = `on conflict (${target}) do update set ${updates.join(",")}`;
+        conflict = updates.length ? `on conflict (${target}) do update set ${updates.join(",")}` : `on conflict (${target}) do nothing`;
       }
     }
     rows = await withRole(db, who, (tx) => mutate(tx,

@@ -1,28 +1,26 @@
-import { OnboardingForm } from "@/components/profile-forms";
+import { OnboardingFlow } from "@/components/onboarding-flow";
+import { categoryImages, loadCategories, topLevel } from "@/lib/discovery/service";
+import { getDeps } from "@/lib/serverDeps";
 import { getViewer } from "@/lib/viewer";
 
 export const metadata = { title: "Welcome - PriceDrop" };
 
-const POINTS = [
-  { title: "How it works", body: "Tell us what you want and your price. We check about every 30 minutes (best effort), record what we see, and alert you here when an offer meets your rules." },
-  { title: "What approval means", body: "We never pay on our own. When a deal appears you choose whether to prepare a checkout, then you approve it yourself at PayPal. Without that, nothing is taken." },
-  { title: "What's real", body: "Prices come from Channel3 where connected. Payments run in PayPal's sandbox: no real money moves and no retailer ships an item." },
-];
-
 export default async function OnboardingPage() {
   const { user, profile } = await getViewer();
+  const deps = getDeps();
+  const tops = topLevel(await loadCategories(deps));
+  const images = await categoryImages(deps, tops, profile?.currency ?? "USD");
   return (
-    <div className="mx-auto grid max-w-lg gap-6">
-      <h1 className="text-3xl font-semibold">Welcome to PriceDrop</h1>
-      <ul className="grid gap-4">
-        {POINTS.map((p) => (
-          <li key={p.title}>
-            <h2 className="text-base font-semibold">{p.title}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">{p.body}</p>
-          </li>
-        ))}
-      </ul>
-      <OnboardingForm userId={user.id} currency={profile?.currency ?? "USD"} />
-    </div>
+    <OnboardingFlow
+      userId={user.id}
+      categories={tops.map((c) => ({ slug: c.slug, name: c.name, description: c.description }))}
+      images={images}
+      initial={{
+        interests: profile?.interests ?? [],
+        brands: profile?.favourite_brands ?? [],
+        prefs: profile?.shopping_preferences ?? [],
+        notify: profile?.notify_in_app ?? true,
+      }}
+    />
   );
 }

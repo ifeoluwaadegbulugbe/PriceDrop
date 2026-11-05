@@ -1,6 +1,6 @@
 # PriceDrop
 
-**The shopping agent that knows when to buy.** Say what you want and what you'll pay. PriceDrop finds products, watches prices, checks offers against your rules with deterministic code, explains the verdict, and prepares a PayPal **sandbox** checkout that only you can approve.
+**Find it. Track it. Get it for less.** Browse by category or describe what you want. PriceDrop finds products, watches prices, checks offers against your rules with deterministic code, explains the verdict, and prepares a PayPal **sandbox** checkout that only you can approve. You can also buy at the current price whenever you like.
 
 Sandbox only: no real money moves and no retailer ships an item. Runs entirely on free tiers.
 
@@ -48,13 +48,25 @@ With the emulator stack and `npm run dev:local` running:
 npm run test:security -- --local
 ```
 
+## Price Intelligence and AG Grid
+
+PriceDrop uses [AG Grid Community](https://www.ag-grid.com/) (MIT licence, no Enterprise package) for one job: managing the products you track. Shopping itself stays image-led with product cards, and the grid lives on its own page.
+
+- **Why a grid:** comparing several tracked products on price, target and recency is what a grid is good at.
+- **Community features used:** sorting, quick-filter search, inline cell editing with validation, custom cell renderers, pagination for longer lists, and a theme built from PriceDrop's own colour tokens.
+- **Connection to Supabase:** the page reads `tracked_products`, `price_observations`, `deal_alerts` and `purchases` through the signed-in person's RLS client. There are no grid-specific tables. Edits go through `PATCH /api/tracking/[id]`, the same route the rest of the app uses.
+- **Sorting and filtering:** plain-language options (lowest price, biggest drop, closest to target, and so on) run through shared, tested functions. Every figure is computed from recorded observations with integer arithmetic.
+- **Phones:** under 1100px wide you get cards with the same data, logic and actions, and the grid code is never downloaded.
+- **What AI does:** it only turns a question like "which has dropped the most?" into a validated filter. Code finds the rows and writes the figures, and the box works with AI turned off.
+- **Testing:** unit tests for calculations and query guards, HTTP checks for access control, and a browser pass covering sort, filter, search, editing, invalid edits, persistence, pause, resume and remove.
+
 ## Docs
 
 - [ARCHITECTURE](docs/ARCHITECTURE.md): how it fits together and the money path
 - [DEPLOY](docs/DEPLOY.md): Supabase, PayPal, Vercel, GitHub Actions
 - [PROGRESS](docs/PROGRESS.md): what was run and what is still unproven
 - [UNVERIFIED](docs/UNVERIFIED.md): every assumption and where the brief and docs disagree
-- [PLAN](docs/PLAN.md)
+- [PLAN](docs/PLAN.md) and [shopping plan](docs/PLAN-SHOPPING.md)
 
 ## Stack
 

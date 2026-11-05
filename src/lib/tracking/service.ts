@@ -1,8 +1,9 @@
 import { logActivity } from "@/lib/activity";
 import { ApiError, notFound } from "@/lib/api/errors";
 import { fetchProductCard } from "@/lib/catalogue";
-import type { ProductRow, TrackedRow } from "@/lib/db/types";
+import type { TrackedRow } from "@/lib/db/types";
 import type { Deps } from "@/lib/deps";
+import { upsertProduct } from "@/lib/discovery/service";
 import { normalizeDomain } from "@/lib/evaluation/evaluate";
 import { checkTracked, type CheckSummary } from "@/lib/monitor/check";
 
@@ -40,23 +41,7 @@ export async function createTracking(
   }
   if (!card) throw notFound("That product");
 
-  const { data: productData, error: productError } = await deps.db
-    .from("products")
-    .upsert(
-      {
-        source: card.source,
-        external_id: card.id,
-        title: card.title.slice(0, 300),
-        brand: card.brand,
-        image_url: card.imageUrl,
-        fetched_at: deps.now().toISOString(),
-      },
-      { onConflict: "source,external_id" },
-    )
-    .select()
-    .single();
-  if (productError || !productData) throw new Error("product_upsert_failed");
-  const product = productData as ProductRow;
+  const product = await upsertProduct(deps, card);
 
   const row = {
     user_id: userId,

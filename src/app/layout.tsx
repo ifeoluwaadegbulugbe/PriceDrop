@@ -7,8 +7,8 @@ const display = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-disp
 const text = Instrument_Sans({ subsets: ["latin"], variable: "--font-text", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "PriceDrop: the shopping agent that knows when to buy",
-  description: "Tell PriceDrop what you want and what you're willing to pay. It watches prices and helps you act when the right deal appears.",
+  title: "PriceDrop: find it, track it, get it for less",
+  description: "Discover products, keep an eye on their prices and know when it's a good time to buy.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

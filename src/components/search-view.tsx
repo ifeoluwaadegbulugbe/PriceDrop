@@ -1,82 +1,144 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
-import { FallbackBanner, ProductResults, ResultsSkeleton } from "@/components/product-results";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
+import { FallbackBanner, GridSkeleton, ProductGrid } from "@/components/product-grid";
+import { SearchBar } from "@/components/search-bar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import type { Intent } from "@/lib/ai/fallback";
 import { api, errorMessage } from "@/lib/api/client";
 import type { SearchResult } from "@/lib/catalogue";
-import { parseMoneyInput } from "@/lib/format";
+import { centsToInput, parseMoneyInput } from "@/lib/format";
+import { formatCents } from "@/lib/money";
 
-export function SearchView({ currency }: { currency: string }) {
-  const [q, setQ] = useState("");
-  const [brand, setBrand] = useState("");
-  const [min, setMin] = useState("");
-  const [max, setMax] = useState("");
-  const [busy, setBusy] = useState(false);
+type IntentResponse = { intent: Intent; mode: "llm" | "basic"; searchMaxCents: number | null; budgetNote: string | null };
+
+export function SearchView({
+  initialQuery,
+  currency,
+  savedKeys,
+  trackedByKey,
+}: {
+  initialQuery: string;
+  currency: string;
+  savedKeys: string[];
+  trackedByKey: Record<string, string>;
+}) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(Boolean(initialQuery));
   const [error, setError] = useState<string | null>(null);
   const [results, setResults] = useState<SearchResult | null>(null);
+  const [mode, setMode] = useState<"llm" | "basic" | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  const [product, setProduct] = useState("");
+  const [brand, setBrand] = useState("");
+  const [max, setMax] = useState("");
+  const [appliedMax, setAppliedMax] = useState<number | undefined>(undefined);
 
-  async function submit(e: FormEvent) {
-    e.preventDefault();
-    if (!q.trim()) return setError("Type what you're looking for.");
-    const qs = new URLSearchParams({ q: q.trim() });
-    if (brand.trim()) qs.set("brand", brand.trim());
-    for (const [key, raw] of [["min", min], ["max", max]] as const) {
-      if (!raw.trim()) continue;
-      const cents = parseMoneyInput(raw);
-      if (cents === null) return setError("Prices must be numbers, like 90 or 89.99.");
-      qs.set(key, String(cents));
-    }
+  const search = useCallback(async (p: string, b: string, maxCents: number | undefined) => {
     setBusy(true);
     setError(null);
+    setAppliedMax(maxCents);
+    const qs = new URLSearchParams({ q: p });
+    if (b) qs.set("brand", b);
+    if (maxCents !== undefined) qs.set("max", String(maxCents));
     try {
       setResults(await api<SearchResult>(`/api/search?${qs}`));
-    } catch (err) {
+    } catch (e) {
       setResults(null);
-      setError(errorMessage(err));
+      setError(errorMessage(e));
     } finally {
       setBusy(false);
     }
+  }, []);
+
+  const interpret = useCallback(async (text: string) => {
+    setBusy(true);
+    setError(null);
+    setResults(null);
+    setNote(null);
+    try {
+      const r = await api<IntentResponse>("/api/assistant/intent", { method: "POST", body: { prompt: text } });
+      const p = r.intent.product === "unspecified" ? text : r.intent.product;
+      const b = r.intent.brand ?? "";
+      const cents = r.searchMaxCents ?? undefined;
+      setMode(r.mode);
+      setNote(r.budgetNote);
+      setProduct(p);
+      setBrand(b);
+      setMax(centsToInput(cents));
+      await search(p, b, cents);
+    } catch (e) {
+      setError(errorMessage(e));
+      setBusy(false);
+    }
+  }, [search]);
+
+  useEffect(() => {
+    if (!initialQuery) return;
+    const t = setTimeout(() => void interpret(initialQuery), 0);
+    return () => clearTimeout(t);
+  }, [initialQuery, interpret]);
+
+  function refine(e: React.FormEvent) {
+    e.preventDefault();
+    if (!product.trim()) return setError("Type what you're looking for.");
+    const cents = max.trim() ? parseMoneyInput(max) : undefined;
+    if (cents === null) return setError("Enter your maximum price as a number, like 90.");
+    setNote(null);
+    void search(product.trim(), brand.trim(), cents);
   }
 
   return (
     <div className="grid gap-5">
-      <form onSubmit={submit} className="grid gap-3 rounded-2xl border bg-card p-4 sm:grid-cols-[2fr_1fr_1fr_1fr_auto] sm:items-end">
-        <div className="grid gap-1.5">
-          <Label htmlFor="s-q">Product</Label>
-          <Input id="s-q" className="h-10" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Noise cancelling headphones" />
-        </div>
-        <div className="grid gap-1.5">
-          <Label htmlFor="s-brand">Brand</Label>
-          <Input id="s-brand" className="h-10" value={brand} onChange={(e) => setBrand(e.target.value)} placeholder="Any" />
-        </div>
-        <div className="grid grid-cols-2 gap-3 sm:col-span-2">
-          <div className="grid gap-1.5">
-            <Label htmlFor="s-min">Min ({currency})</Label>
-            <Input id="s-min" inputMode="decimal" className="tnum h-10" value={min} onChange={(e) => setMin(e.target.value)} />
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="s-max">Max ({currency})</Label>
-            <Input id="s-max" inputMode="decimal" className="tnum h-10" value={max} onChange={(e) => setMax(e.target.value)} />
-          </div>
-        </div>
-        <Button type="submit" size="lg" disabled={busy}>{busy ? "Searching..." : "Search"}</Button>
-      </form>
+      <SearchBar key={initialQuery} initial={initialQuery} examples={!initialQuery} onSearch={(q) => router.push(`/search?q=${encodeURIComponent(q)}`)} />
 
-      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-      {busy && <ResultsSkeleton />}
-      {!busy && !results && !error && (
-        <p className="rounded-2xl border border-dashed p-8 text-center text-sm text-muted-foreground">Search for a product to compare its current offers, then set your rules.</p>
+      {!initialQuery && !results && (
+        <p className="rounded-2xl border border-dashed p-8 text-center text-sm text-muted-foreground">
+          Search by product, brand or category, or just describe what you want.
+        </p>
       )}
+
+      {(product || results) && (
+        <form onSubmit={refine} className="grid grid-cols-2 items-end gap-3 rounded-2xl border bg-card p-3 sm:grid-cols-[2fr_1fr_1fr_auto]">
+          <div className="col-span-2 grid gap-1 sm:col-span-1">
+            <Label htmlFor="r-product" className="text-xs">Looking for</Label>
+            <Input id="r-product" className="h-10" value={product} onChange={(e) => setProduct(e.target.value)} />
+          </div>
+          <div className="grid gap-1">
+            <Label htmlFor="r-brand" className="text-xs">Brand</Label>
+            <Input id="r-brand" className="h-10" placeholder="Any" value={brand} onChange={(e) => setBrand(e.target.value)} />
+          </div>
+          <div className="grid gap-1">
+            <Label htmlFor="r-max" className="text-xs">Max price ({currency})</Label>
+            <Input id="r-max" inputMode="decimal" className="tnum h-10" placeholder="Any" value={max} onChange={(e) => setMax(e.target.value)} />
+          </div>
+          <Button type="submit" size="lg" variant="secondary" className="col-span-2 h-10 sm:col-span-1" disabled={busy}>Update</Button>
+        </form>
+      )}
+
+      {note && <p role="status" className="text-sm text-muted-foreground">{note}</p>}
+      {mode === "basic" && results && <p className="text-xs text-muted-foreground">Basic mode: understood without AI.</p>}
+      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+      {busy && <GridSkeleton />}
+
       {!busy && results && (
         <section aria-label="Results" className="grid gap-3">
           <FallbackBanner reason={results.fallbackReason} />
           {results.products.length === 0 ? (
-            <p className="rounded-2xl border p-6 text-center text-sm text-muted-foreground">Nothing matched those filters. Try removing the brand or widening the price range.</p>
+            <p className="rounded-2xl border p-6 text-center text-sm text-muted-foreground">
+              Nothing matched{appliedMax !== undefined ? ` under ${formatCents(appliedMax, currency)}` : ""}. Try fewer words, or remove the brand or price.
+            </p>
           ) : (
-            <ProductResults products={results.products} currency={currency} fetchedAt={results.fetchedAt} />
+            <ProductGrid
+              cards={results.products}
+              currency={currency}
+              savedKeys={savedKeys}
+              trackedByKey={trackedByKey}
+              suggestedTargetCents={appliedMax}
+            />
           )}
         </section>
       )}

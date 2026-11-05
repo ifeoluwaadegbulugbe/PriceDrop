@@ -30,6 +30,16 @@ With a real key, using the emulator for the database and payments:
 - Live data exposed two fixes: within-budget results now come first, and demo simulation now skips out-of-stock retailers.
 - The key is not yet set on Vercel by this session. That has to be done in the dashboard, followed by a redeploy.
 
+## Shopping experience, Buy now and AG Grid (2026-11-05, later)
+
+Run with the emulator for the database and payments, and real Channel3 data:
+- Tested: onboarding on a phone, homepage, all 12 category lookups against real Channel3 results, subcategories, product page, save, Buy now through capture, and Price Intelligence (filters, sort, search, retailer filter, target edit, persistence after refresh, invalid edit, pause, resume, remove, AI questions, phone cards).
+- Bugs the walkthrough found and fixed: the homepage crashed from a client helper called on the server; products that dropped and reached target were missing from "Price dropped"; an invalid target edit showed a false "Saved"; removed products lingered in activity.
+- Also tested: interests persist after signing out and back in, and edits to them save.
+- Real PayPal sandbox: reachable, and it rejected deliberately fake credentials, which the app reported correctly. No real order has been created, because no sandbox credentials are available here. The Profile page now shows a live PayPal connection check.
+- Not tested: real Supabase, a real PayPal order, the migration on a real project, and Gemini. **The live site's PayPal error is still undiagnosed**, because the reason wasn't visible before this change.
+- Credits used on Channel3 so far: an estimated 25 to 50 of 1,000 (not metered here; check the Channel3 dashboard), including one 12-credit check of all categories.
+
 ## What is real, what is emulated
 
 | Piece | Status |

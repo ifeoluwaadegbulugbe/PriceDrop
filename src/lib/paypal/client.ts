@@ -55,7 +55,11 @@ export type PaypalOrder = {
   captures: PaypalCapture[];
 };
 
+export type PaypalAuthStatus = "ok" | "rejected" | "unreachable";
+
 export interface PaypalApi {
+  /** Asks PayPal for a token and reports the outcome. Creates nothing and returns no credentials. */
+  checkAuth(): Promise<PaypalAuthStatus>;
   createOrder(args: {
     amountCents: number;
     currency: string;
@@ -167,6 +171,15 @@ export function createPaypalClient(cfg: {
   }
 
   return {
+    async checkAuth() {
+      try {
+        token = null;
+        await accessToken();
+        return "ok";
+      } catch (e) {
+        return e instanceof PaypalError ? "rejected" : "unreachable";
+      }
+    },
     async createOrder({ amountCents, currency, requestId, returnUrl, cancelUrl, customId }) {
       const raw = await call("POST", "/v2/checkout/orders", {
         requestId,

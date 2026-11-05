@@ -7,6 +7,22 @@ export type ProfileRow = {
   notify_in_app: boolean;
   onboarded: boolean;
   created_at: string;
+  interests: string[];
+  favourite_brands: string[];
+  shopping_preferences: string[];
+};
+export type CategoryRow = {
+  id: string;
+  parent_id: string | null;
+  slug: string;
+  name: string;
+  description: string;
+  image_url: string | null;
+  channel3_slugs: string[];
+  search_query: string;
+  seed_terms: string[];
+  display_order: number;
+  active: boolean;
 };
 export type ProductRow = {
   id: string;
@@ -78,7 +94,9 @@ export type OrderStatus =
 export type OrderRow = {
   id: string;
   user_id: string;
-  deal_alert_id: string;
+  deal_alert_id: string | null;
+  product_id: string | null;
+  retailer_domain: string | null;
   paypal_order_id: string | null;
   idempotency_key: string;
   amount_cents: number;
