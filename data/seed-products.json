@@ -1,0 +1,69 @@
+{
+  "_notice": "Demo catalogue. Invented prices and retailers for demos and fallback. Not live retailer data. The .example domains do not exist.",
+  "products": [
+    { "id": "seed-sony-wh-ch520", "title": "Sony WH-CH520 Wireless Headphones", "brand": "Sony", "category": "headphones", "offers": [
+      { "domain": "northwind-audio.example", "priceCents": 7999, "shippingCents": 0, "inStock": true, "variantLabel": null },
+      { "domain": "harbor-electronics.example", "priceCents": 8499, "shippingCents": 499, "inStock": true, "variantLabel": null } ] },
+    { "id": "seed-sony-wh-ch720n", "title": "Sony WH-CH720N Noise Cancelling Headphones", "brand": "Sony", "category": "headphones", "offers": [
+      { "domain": "northwind-audio.example", "priceCents": 12999, "shippingCents": 0, "inStock": true, "variantLabel": null },
+      { "domain": "harbor-electronics.example", "priceCents": 11999, "shippingCents": 599, "inStock": true, "variantLabel": null } ] },
+    { "id": "seed-sony-wh-1000xm5", "title": "Sony WH-1000XM5 Noise Cancelling Headphones", "brand": "Sony", "category": "headphones", "offers": [
+      { "domain": "northwind-audio.example", "priceCents": 34999, "shippingCents": 0, "inStock": true, "variantLabel": null },
+      { "domain": "lumen-market.example", "priceCents": 32999, "shippingCents": null, "inStock": true, "variantLabel": null } ] },
+    { "id": "seed-bose-qc-se", "title": "Bose QuietComfort SE Headphones", "brand": "Bose", "category": "headphones", "offers": [
+      { "domain": "harbor-electronics.example", "priceCents": 24900, "shippingCents": 0, "inStock": true, "variantLabel": null } ] },
+    { "id": "seed-sennheiser-accentum", "title": "Sennheiser Accentum Wireless Headphones", "brand": "Sennheiser", "category": "headphones", "offers": [
+      { "domain": "lumen-market.example", "priceCents": 14995, "shippingCents": 0, "inStock": true, "variantLabel": null },
+      { "domain": "northwind-audio.example", "priceCents": 15995, "shippingCents": 0, "inStock": false, "variantLabel": null } ] },
+    { "id": "seed-anker-q30", "title": "Anker Soundcore Q30 Hybrid ANC Headphones", "brand": "Anker", "category": "headphones", "offers": [
+      { "domain": "lumen-market.example", "priceCents": 6999, "shippingCents": 0, "inStock": true, "variantLabel": null } ] },
+    { "id": "seed-jbl-tune-770", "title": "JBL Tune 770NC Wireless Headphones", "brand": "JBL", "category": "headphones", "offers": [
+      { "domain": "harbor-electronics.example", "priceCents": 8995, "shippingCents": 399, "inStock": true, "variantLabel": null } ] },
+    { "id": "seed-apple-airpods-pro", "title": "Apple AirPods Pro Earbuds", "brand": "Apple", "category": "headphones earbuds", "offers": [
+      { "domain": "northwind-audio.example", "priceCents": 22900, "shippingCents": 0, "inStock": true, "variantLabel": null },
+      { "domain": "harbor-electronics.example", "priceCents": 21900, "shippingCents": null, "inStock": true, "variantLabel": null } ] },
+
+    { "id": "seed-apple-macbook-air-13", "title": "Apple MacBook Air 13-inch Laptop", "brand": "Apple", "category": "laptop", "offers": [
+      { "domain": "cobalt-computers.example", "priceCents": 99900, "shippingCents": 0, "inStock": true, "variantLabel": "16GB / 256GB" },
+      { "domain": "lumen-market.example", "priceCents": 104900, "shippingCents": 0, "inStock": true, "variantLabel": "16GB / 256GB" } ] },
+    { "id": "seed-dell-xps-13", "title": "Dell XPS 13 Laptop", "brand": "Dell", "category": "laptop", "offers": [
+      { "domain": "cobalt-computers.example", "priceCents": 119900, "shippingCents": 0, "inStock": true, "variantLabel": "16GB / 512GB" } ] },
+    { "id": "seed-lenovo-ideapad-5", "title": "Lenovo IdeaPad Slim 5 Laptop", "brand": "Lenovo", "category": "laptop", "offers": [
+      { "domain": "cobalt-computers.example", "priceCents": 62999, "shippingCents": 0, "inStock": true, "variantLabel": null },
+      { "domain": "harbor-electronics.example", "priceCents": 59999, "shippingCents": 1999, "inStock": true, "variantLabel": null } ] },
+    { "id": "seed-hp-pavilion-14", "title": "HP Pavilion 14 Laptop", "brand": "HP", "category": "laptop", "offers": [
+      { "domain": "lumen-market.example", "priceCents": 54999, "shippingCents": null, "inStock": true, "variantLabel": null } ] },
+    { "id": "seed-asus-zenbook-14", "title": "Asus Zenbook 14 OLED Laptop", "brand": "Asus", "category": "laptop", "offers": [
+      { "domain": "cobalt-computers.example", "priceCents": 79999, "shippingCents": 0, "inStock": false, "variantLabel": null },
+      { "domain": "lumen-market.example", "priceCents": 82999, "shippingCents": 0, "inStock": true, "variantLabel": null } ] },
+    { "id": "seed-acer-aspire-5", "title": "Acer Aspire 5 Laptop", "brand": "Acer", "category": "laptop", "offers": [
+      { "domain": "harbor-electronics.example", "priceCents": 44999, "shippingCents": 1499, "inStock": true, "variantLabel": null } ] },
+
+    { "id": "seed-google-pixel-9a", "title": "Google Pixel 9a Unlocked Phone", "brand": "Google", "category": "phone smartphone", "offers": [
+      { "domain": "signal-mobile.example", "priceCents": 49900, "shippingCents": 0, "inStock": true, "variantLabel": "128GB" },
+      { "domain": "lumen-market.example", "priceCents": 47900, "shippingCents": 999, "inStock": true, "variantLabel": "128GB" } ] },
+    { "id": "seed-samsung-galaxy-a55", "title": "Samsung Galaxy A55 Unlocked Phone", "brand": "Samsung", "category": "phone smartphone", "offers": [
+      { "domain": "signal-mobile.example", "priceCents": 39999, "shippingCents": 0, "inStock": true, "variantLabel": "128GB" } ] },
+    { "id": "seed-apple-iphone-16e", "title": "Apple iPhone 16e Phone", "brand": "Apple", "category": "phone smartphone", "offers": [
+      { "domain": "signal-mobile.example", "priceCents": 59900, "shippingCents": 0, "inStock": true, "variantLabel": "128GB" },
+      { "domain": "cobalt-computers.example", "priceCents": 62900, "shippingCents": 0, "inStock": true, "variantLabel": "128GB" } ] },
+    { "id": "seed-oneplus-13r", "title": "OnePlus 13R Unlocked Phone", "brand": "OnePlus", "category": "phone smartphone", "offers": [
+      { "domain": "lumen-market.example", "priceCents": 59999, "shippingCents": null, "inStock": true, "variantLabel": "256GB" } ] },
+    { "id": "seed-motorola-edge", "title": "Motorola Edge Unlocked Phone", "brand": "Motorola", "category": "phone smartphone", "offers": [
+      { "domain": "signal-mobile.example", "priceCents": 34999, "shippingCents": 599, "inStock": true, "variantLabel": "256GB" } ] },
+
+    { "id": "seed-nike-pegasus-41", "title": "Nike Pegasus 41 Running Shoes", "brand": "Nike", "category": "shoes running sneakers", "offers": [
+      { "domain": "stride-supply.example", "priceCents": 13995, "shippingCents": 0, "inStock": true, "variantLabel": "US 10" },
+      { "domain": "lumen-market.example", "priceCents": 12995, "shippingCents": 799, "inStock": true, "variantLabel": "US 10" } ] },
+    { "id": "seed-adidas-ultraboost", "title": "Adidas Ultraboost Running Shoes", "brand": "Adidas", "category": "shoes running sneakers", "offers": [
+      { "domain": "stride-supply.example", "priceCents": 17999, "shippingCents": 0, "inStock": true, "variantLabel": "US 10" } ] },
+    { "id": "seed-new-balance-990", "title": "New Balance 990v6 Sneakers", "brand": "New Balance", "category": "shoes sneakers", "offers": [
+      { "domain": "stride-supply.example", "priceCents": 19999, "shippingCents": 0, "inStock": true, "variantLabel": "US 10" },
+      { "domain": "lumen-market.example", "priceCents": 18999, "shippingCents": null, "inStock": false, "variantLabel": "US 10" } ] },
+    { "id": "seed-asics-gel-nimbus", "title": "Asics Gel-Nimbus Running Shoes", "brand": "Asics", "category": "shoes running sneakers", "offers": [
+      { "domain": "stride-supply.example", "priceCents": 15999, "shippingCents": 599, "inStock": true, "variantLabel": "US 10" } ] },
+    { "id": "seed-hoka-clifton", "title": "Hoka Clifton Running Shoes", "brand": "Hoka", "category": "shoes running sneakers", "offers": [
+      { "domain": "stride-supply.example", "priceCents": 14500, "shippingCents": 0, "inStock": true, "variantLabel": "US 10" },
+      { "domain": "lumen-market.example", "priceCents": 13999, "shippingCents": 899, "inStock": true, "variantLabel": "US 10" } ] }
+  ]
+}

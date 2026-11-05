@@ -1,0 +1,18 @@
+{
+  "_synthetic": "Hand-written from the @channel3/sdk 4.8.0 types. NOT recorded from a real response: no API key was available.",
+  "id": "synthetic-1",
+  "title": "Sony WH-CH520",
+  "brands": [{ "id": "b1", "name": "Sony" }],
+  "images": [
+    { "url": "https://images.example/alt.png", "is_main_image": false },
+    { "url": "https://images.example/main.png", "cleaned_url": "https://images.example/clean.png", "is_main_image": true }
+  ],
+  "offers": [
+    { "url": "https://shop.example/p", "domain": "www.Shop.example", "price": { "price": 79.99, "compare_at_price": 99.99, "currency": "usd" }, "availability": "InStock", "max_commission_rate": 0 },
+    { "url": "https://other.example/p", "domain": "other.example", "price": { "price": 85, "currency": "USD" }, "availability": "OutOfStock" },
+    { "url": "javascript:alert(1)", "domain": "third.example", "price": { "price": 70.5, "currency": "USD" }, "availability": "InStock" },
+    { "url": "https://bad.example/p", "domain": "bad.example", "price": { "price": -5, "currency": "USD" }, "availability": "InStock" },
+    { "url": "https://nodomain.example/p", "domain": "", "price": { "price": 5, "currency": "USD" }, "availability": "InStock" }
+  ],
+  "variants": { "options": [], "selected": [{ "name": "Color", "label": "Black" }] }
+}
