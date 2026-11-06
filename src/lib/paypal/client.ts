@@ -55,11 +55,26 @@ export type PaypalOrder = {
   captures: PaypalCapture[];
 };
 
-export type PaypalAuthStatus = "ok" | "rejected" | "unreachable";
+export type PaypalAuthStatus = "ok" | "rejected" | "unexpected" | "unreachable";
+export type PaypalAuthCheck = { status: PaypalAuthStatus; detail: string | null };
+
+/** Why a request never got an answer, in a few words. Contains no credentials or payloads. */
+export function networkReason(e: unknown): string {
+  const err = e as { name?: string; message?: string; cause?: { code?: string; name?: string; message?: string } };
+  const code = err?.cause?.code;
+  if (err?.name === "TimeoutError" || err?.name === "AbortError" || err?.cause?.name === "TimeoutError") return "it took too long to respond";
+  if (code === "ENOTFOUND" || code === "EAI_AGAIN") return "the address couldn't be found";
+  if (code === "ECONNREFUSED" || code === "ECONNRESET" || code === "UND_ERR_SOCKET") return "the connection was dropped";
+  if (code === "UND_ERR_CONNECT_TIMEOUT") return "it took too long to connect";
+  if (/invalid url/i.test(err?.message ?? "") || /invalid url/i.test(err?.cause?.message ?? "")) return "the PayPal address is invalid";
+  return code ? `connection error ${code}` : "the connection failed";
+}
 
 export interface PaypalApi {
   /** Asks PayPal for a token and reports the outcome. Creates nothing and returns no credentials. */
-  checkAuth(): Promise<PaypalAuthStatus>;
+  checkAuth(): Promise<PaypalAuthCheck>;
+  /** The PayPal host this client talks to. Not secret. */
+  host: string;
   createOrder(args: {
     amountCents: number;
     currency: string;
@@ -117,22 +132,37 @@ export function createPaypalClient(cfg: {
   allowLive?: boolean;
   fetchImpl?: typeof fetch;
 }): PaypalApi {
-  const baseUrl = (cfg.baseUrl ?? SANDBOX_BASE_URL).replace(/\/+$/, "");
+  const baseUrl = (cfg.baseUrl ?? SANDBOX_BASE_URL).trim().replace(/\/+$/, "");
   assertSandboxUrl(baseUrl, cfg.allowLive === true);
   const doFetch = cfg.fetchImpl ?? fetch;
   let token: { value: string; expiresAt: number } | null = null;
 
+  /**
+   * One retry when no answer came back. Safe for orders and captures, because a repeated PayPal-Request-Id returns
+   * the original result rather than creating a second one. An answer from PayPal, even an error, is never retried.
+   */
+  async function fetchWithRetry(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+    try {
+      return await doFetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
+    } catch (first) {
+      if (/invalid url/i.test(String((first as Error).message))) throw first;
+      return doFetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
+    }
+  }
+
   async function accessToken(): Promise<string> {
     if (token && Date.now() < token.expiresAt) return token.value;
-    const basic = Buffer.from(`${cfg.clientId}:${cfg.clientSecret}`).toString("base64");
-    const res = await doFetch(`${baseUrl}/v1/oauth2/token`, {
+    const basic = Buffer.from(`${cfg.clientId.trim()}:${cfg.clientSecret.trim()}`).toString("base64");
+    const res = await fetchWithRetry(`${baseUrl}/v1/oauth2/token`, {
       method: "POST",
       headers: { authorization: `Basic ${basic}`, "content-type": "application/x-www-form-urlencoded" },
       body: "grant_type=client_credentials",
-      signal: AbortSignal.timeout(10_000),
-    });
-    if (!res.ok) throw new PaypalError(res.status, "AUTHENTICATION_FAILURE", null, null);
-    const data = (await res.json()) as { access_token?: unknown; expires_in?: unknown };
+    }, 15_000);
+    // Only a 401 means the keys were refused. Anything else points at the address or at PayPal itself.
+    if (!res.ok) throw new PaypalError(res.status, res.status === 401 ? "AUTHENTICATION_FAILURE" : `TOKEN_HTTP_${res.status}`, null, null);
+    const data = (await res.json().catch(() => {
+      throw new PaypalError(502, "MALFORMED_RESPONSE", null, null);
+    })) as { access_token?: unknown; expires_in?: unknown };
     if (typeof data.access_token !== "string") throw new PaypalError(502, "MALFORMED_RESPONSE", null, null);
     const ttl = typeof data.expires_in === "number" ? data.expires_in : 300;
     token = { value: data.access_token, expiresAt: Date.now() + Math.max(ttl - 60, 30) * 1000 };
@@ -140,7 +170,7 @@ export function createPaypalClient(cfg: {
   }
 
   async function call(method: string, path: string, opts: { body?: unknown; requestId?: string } = {}): Promise<unknown> {
-    const res = await doFetch(`${baseUrl}${path}`, {
+    const res = await fetchWithRetry(`${baseUrl}${path}`, {
       method,
       headers: {
         authorization: `Bearer ${await accessToken()}`,
@@ -149,8 +179,7 @@ export function createPaypalClient(cfg: {
         ...(opts.requestId ? { "paypal-request-id": opts.requestId } : {}),
       },
       ...(opts.body !== undefined ? { body: JSON.stringify(opts.body) } : {}),
-      signal: AbortSignal.timeout(20_000),
-    });
+    }, 20_000);
     const text = await res.text();
     let data: unknown = null;
     try {
@@ -171,13 +200,25 @@ export function createPaypalClient(cfg: {
   }
 
   return {
+    host: (() => {
+      try {
+        return new URL(baseUrl).hostname;
+      } catch {
+        return baseUrl;
+      }
+    })(),
     async checkAuth() {
       try {
         token = null;
         await accessToken();
-        return "ok";
+        return { status: "ok", detail: null };
       } catch (e) {
-        return e instanceof PaypalError ? "rejected" : "unreachable";
+        if (e instanceof PaypalError) {
+          return e.paypalName === "AUTHENTICATION_FAILURE"
+            ? { status: "rejected", detail: null }
+            : { status: "unexpected", detail: e.paypalName };
+        }
+        return { status: "unreachable", detail: networkReason(e) };
       }
     },
     async createOrder({ amountCents, currency, requestId, returnUrl, cancelUrl, customId }) {

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
-const blank = (v: unknown) => (typeof v === "string" && v.trim() === "" ? undefined : v);
+// Values pasted into a dashboard often carry a stray space or line break, so every value is trimmed.
+const blank = (v: unknown) => (typeof v === "string" ? v.trim() || undefined : v);
 const boolFlag = z.preprocess(blank, z.string().optional()).transform((v) => v === "true");
 const optionalString = z.preprocess(blank, z.string().optional());
 

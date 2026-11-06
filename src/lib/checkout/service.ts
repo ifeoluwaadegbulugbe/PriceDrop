@@ -7,7 +7,7 @@ import type { Deps } from "@/lib/deps";
 import { upsertProduct } from "@/lib/discovery/service";
 import { evaluateDeal, normalizeDomain, type Evaluation } from "@/lib/evaluation/evaluate";
 import { currentOffers, latestObservation, rulesOf } from "@/lib/monitor/check";
-import { PaypalError, type PaypalApi, type PaypalOrder } from "@/lib/paypal/client";
+import { networkReason, PaypalError, type PaypalApi, type PaypalOrder } from "@/lib/paypal/client";
 import { assertTransition, LIVE_STATUSES } from "./stateMachine";
 
 const ORDER_TTL_MS = 30 * 60 * 1000;
@@ -71,13 +71,14 @@ export function paypalFailure(e: unknown): ApiError {
   const issue = e instanceof PaypalError ? e.issue : null;
   const debugId = e instanceof PaypalError ? e.debugId : null;
   // Names and PayPal's reference only: no tokens, no credentials, no payloads.
-  console.error(`paypal_create_failed ${name} ${issue ?? ""} debug_id=${debugId ?? "none"}`);
+  const why = e instanceof PaypalError ? null : networkReason(e);
+  console.error(`paypal_create_failed ${name} ${issue ?? ""} ${why ?? ""} debug_id=${debugId ?? "none"}`);
   const ref = [issue ?? name, debugId].filter(Boolean).join(", ");
   const message =
     name === "AUTHENTICATION_FAILURE"
       ? "PayPal rejected this site's sandbox credentials, so no order was created. Nothing was charged. The PayPal client ID and secret need checking."
       : name === "PAYPAL_UNREACHABLE"
-        ? "We couldn't reach PayPal, so no order was created. Nothing was charged. Please try again."
+        ? `We couldn't reach PayPal (${why}), so no order was created. Nothing was charged. Please try again. If this keeps happening, your Profile page shows what to fix.`
         : `PayPal couldn't create the sandbox order. Nothing was charged. (PayPal said: ${ref})`;
   return new ApiError(502, "paypal_create_failed", message, { paypalCode: name, ...(issue ? { paypalIssue: issue } : {}) });
 }
@@ -95,7 +96,7 @@ async function createRemoteOrder(deps: Deps, paypal: PaypalApi, row: OrderRow): 
     });
   } catch (e) {
     const failure = paypalFailure(e);
-    const reason = e instanceof PaypalError ? [e.paypalName, e.issue].filter(Boolean).join(":") : "paypal_unreachable";
+    const reason = e instanceof PaypalError ? [e.paypalName, e.issue].filter(Boolean).join(":") : `paypal_unreachable: ${networkReason(e)}`;
     await transition(deps, row, "failed", { failure_reason: reason });
     throw failure;
   }

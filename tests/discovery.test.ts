@@ -19,7 +19,7 @@ import { SERVICE_KEY, startStack, type Stack } from "../scripts/local/stack";
 let stack: Stack;
 let db: SupabaseClient;
 let deps: Deps;
-let clock = new Date("2026-11-05T12:00:00Z");
+let clock = new Date();
 const advance = (ms: number) => { clock = new Date(clock.getTime() + ms); };
 
 const liveCard = (id: string, brand = "Sony", cents = 5000): ProductCard => ({

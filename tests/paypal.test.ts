@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { centsToPaypalValue, majorToCents, moneyStringToCents } from "@/lib/money";
-import { assertSandboxUrl, createPaypalClient, PaypalError, PaypalLiveEndpointError } from "@/lib/paypal/client";
+import { assertSandboxUrl, createPaypalClient, networkReason, PaypalError, PaypalLiveEndpointError } from "@/lib/paypal/client";
 import { normalizeProduct } from "@/lib/channel3/normalize";
 import { paypalSetupStatusFor } from "@/lib/paypal/statusMessage";
 import fixture from "./fixtures/channel3-product.synthetic.json";
@@ -131,21 +131,65 @@ describe("paypal client", () => {
 });
 
 describe("paypal setup check", () => {
-  const make = (over: Partial<Parameters<typeof paypalSetupStatusFor>[0]>) => paypalSetupStatusFor({ auth: "ok", appUrl: "https://shop.example", production: true, ...over });
+  const make = (over: Partial<Parameters<typeof paypalSetupStatusFor>[0]>) => paypalSetupStatusFor({ auth: { status: "ok", detail: null }, host: "api-m.sandbox.paypal.com", appUrl: "https://shop.example", production: true, ...over });
   it("is happy only with good credentials and a real return address", () => {
     expect(make({}).ok).toBe(true);
-    expect(make({ auth: "rejected" })).toMatchObject({ ok: false, message: expect.stringMatching(/client ID and secret/) });
-    expect(make({ auth: "unreachable" })).toMatchObject({ ok: false, message: expect.stringMatching(/couldn't reach/) });
+    expect(make({ auth: { status: "rejected", detail: null } })).toMatchObject({ ok: false, message: expect.stringMatching(/client ID and secret/) });
+    expect(make({ auth: { status: "unreachable", detail: "it took too long to respond" } })).toMatchObject({ ok: false, message: expect.stringMatching(/couldn't reach PayPal at api-m.*too long/) });
+    expect(make({ auth: { status: "unexpected", detail: "TOKEN_HTTP_404" } })).toMatchObject({ ok: false, message: expect.stringMatching(/TOKEN_HTTP_404.*PAYPAL_BASE_URL/) });
     expect(make({ appUrl: "http://localhost:3000" })).toMatchObject({ ok: false, message: expect.stringMatching(/NEXT_PUBLIC_APP_URL/) });
     expect(make({ appUrl: "http://localhost:3000", production: false }).ok).toBe(true);
   });
   it("checkAuth reports what happened and creates nothing", async () => {
     const ok = createPaypalClient({ clientId: "i", clientSecret: "s", fetchImpl: fakeFetch(() => Response.json({})) });
-    expect(await ok.checkAuth()).toBe("ok");
+    expect((await ok.checkAuth()).status).toBe("ok");
     const rejected = createPaypalClient({ clientId: "i", clientSecret: "s", fetchImpl: (async () => Response.json({ error: "invalid_client" }, { status: 401 })) as unknown as typeof fetch });
-    expect(await rejected.checkAuth()).toBe("rejected");
+    expect((await rejected.checkAuth()).status).toBe("rejected");
+    const notFound = createPaypalClient({ clientId: "i", clientSecret: "s", fetchImpl: (async () => new Response("nope", { status: 404 })) as unknown as typeof fetch });
+    expect(await notFound.checkAuth()).toEqual({ status: "unexpected", detail: "TOKEN_HTTP_404" });
+    const html = createPaypalClient({ clientId: "i", clientSecret: "s", fetchImpl: (async () => new Response("<html>", { status: 200 })) as unknown as typeof fetch });
+    expect(await html.checkAuth()).toEqual({ status: "unexpected", detail: "MALFORMED_RESPONSE" });
     const down = createPaypalClient({ clientId: "i", clientSecret: "s", fetchImpl: (async () => { throw new Error("network"); }) as unknown as typeof fetch });
-    expect(await down.checkAuth()).toBe("unreachable");
+    expect((await down.checkAuth()).status).toBe("unreachable");
+  });
+  it("retries once when no answer came back, and uses the same request id", async () => {
+    const ids: (string | undefined)[] = [];
+    let orderCalls = 0;
+    const flaky = (async (url: string | URL | Request, init?: RequestInit) => {
+      if (String(url).endsWith("/v1/oauth2/token")) return Response.json({ access_token: "t", expires_in: 3600 });
+      orderCalls++;
+      ids.push((init?.headers as Record<string, string>)["paypal-request-id"]);
+      if (orderCalls === 1) throw new TypeError("fetch failed");
+      return Response.json({ id: "O1", status: "PAYER_ACTION_REQUIRED" });
+    }) as unknown as typeof fetch;
+    const c = createPaypalClient({ clientId: "i", clientSecret: "s", fetchImpl: flaky });
+    const order = await c.createOrder({ amountCents: 100, currency: "USD", requestId: "same-id", returnUrl: "https://a/r", cancelUrl: "https://a/c", customId: "x" });
+    expect(order.id).toBe("O1");
+    expect(ids).toEqual(["same-id", "same-id"]);
+  });
+  it("doesn't retry a real answer from PayPal", async () => {
+    let calls = 0;
+    const f = (async (url: string | URL | Request) => {
+      if (String(url).endsWith("/v1/oauth2/token")) return Response.json({ access_token: "t", expires_in: 3600 });
+      calls++;
+      return Response.json({ name: "UNPROCESSABLE_ENTITY" }, { status: 422 });
+    }) as unknown as typeof fetch;
+    await createPaypalClient({ clientId: "i", clientSecret: "s", fetchImpl: f }).getOrder("ABC").catch(() => undefined);
+    expect(calls).toBe(1);
+  });
+  it("names the network reason", () => {
+    expect(networkReason(new DOMException("t", "TimeoutError"))).toMatch(/too long/);
+    expect(networkReason(Object.assign(new TypeError("fetch failed"), { cause: { code: "ENOTFOUND" } }))).toMatch(/couldn't be found/);
+    expect(networkReason(new TypeError("Invalid URL"))).toMatch(/invalid/);
+  });
+  it("copes with stray whitespace in the address and keys", async () => {
+    let seen = "";
+    const c = createPaypalClient({
+      clientId: " id\n", clientSecret: " secret ", baseUrl: "https://api-m.sandbox.paypal.com/\n",
+      fetchImpl: (async (url: string | URL | Request) => { seen = String(url); return Response.json({ access_token: "t", expires_in: 3600 }); }) as unknown as typeof fetch,
+    });
+    expect((await c.checkAuth()).status).toBe("ok");
+    expect(seen).toBe("https://api-m.sandbox.paypal.com/v1/oauth2/token");
   });
 });
 

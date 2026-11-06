@@ -19,7 +19,7 @@ import { SERVICE_KEY, startStack, type Stack } from "../scripts/local/stack";
 let stack: Stack;
 let db: SupabaseClient;
 let deps: Deps;
-let clock = new Date("2026-11-05T12:00:00Z");
+let clock = new Date();
 const advance = (ms: number) => { clock = new Date(clock.getTime() + ms); };
 
 const seed = { source: "seed" as const, externalId: "seed-sony-wh-ch520", allowedDomains: [], allowedVariants: null, requireInStock: true };
