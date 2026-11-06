@@ -123,6 +123,10 @@ function ActionsCell({ data, actions }: ICellRendererParams<IntelligenceRow> & {
   );
 }
 
+// Cells center their content vertically, so every column in a row lines up.
+const ROW_CENTER = { display: "flex", alignItems: "center" };
+const ROW_END = { ...ROW_CENTER, justifyContent: "flex-end" };
+
 export default function PriceGrids({ rows, activity, sortResetKey, search, actions }: {
   rows: IntelligenceRow[];
   activity: ActivityEvent[];
@@ -156,14 +160,14 @@ export default function PriceGrids({ rows, activity, sortResetKey, search, actio
   }
 
   const columns = useMemo<ColDef<IntelligenceRow>[]>(() => [
-    { colId: "product", field: "title", headerName: "Product", flex: 2, minWidth: 240, cellRenderer: ProductCell, getQuickFilterText: (p) => `${p.data.title} ${p.data.brand ?? ""} ${p.data.domain ?? ""}` },
+    { colId: "product", field: "title", headerName: "Product", flex: 2, minWidth: 220, cellRenderer: ProductCell, getQuickFilterText: (p) => `${p.data.title} ${p.data.brand ?? ""} ${p.data.domain ?? ""}` },
     {
-      colId: "current", field: "currentCents", headerName: "Price now", width: 112, type: "rightAligned", cellRenderer: PriceCell,
+      colId: "current", field: "currentCents", headerName: "Price now", width: 108, type: "rightAligned", cellStyle: ROW_END, cellRenderer: PriceCell,
       comparator: (a, b) => (a ?? Number.MAX_SAFE_INTEGER) - (b ?? Number.MAX_SAFE_INTEGER),
     },
-    { colId: "previous", field: "previousCents", headerName: "Before", width: 108, type: "rightAligned", cellRenderer: PreviousCell },
+    { colId: "previous", field: "previousCents", headerName: "Before", width: 104, type: "rightAligned", cellStyle: ROW_END, cellRenderer: PreviousCell },
     {
-      colId: "target", field: "targetCents", headerName: "Target", width: 92, type: "rightAligned",
+      colId: "target", field: "targetCents", headerName: "Target", width: 92, type: "rightAligned", cellStyle: ROW_END,
       editable: (p) => p.data?.trackedStatus !== "purchased",
       headerTooltip: "Click a target to change it",
       cellEditor: "agNumberCellEditor",
@@ -183,12 +187,12 @@ export default function PriceGrids({ rows, activity, sortResetKey, search, actio
       colId: "gap", field: "toTargetCents", headerName: "Left to save", width: 108, cellRenderer: TargetGapCell,
       comparator: (a, b) => (a ?? Number.MAX_SAFE_INTEGER) - (b ?? Number.MAX_SAFE_INTEGER),
     },
-    { colId: "status", field: "status", headerName: "Status", width: 132, cellRenderer: StatusCell },
+    { colId: "status", field: "status", headerName: "Status", width: 145, cellRenderer: StatusCell },
     {
-      colId: "checked", field: "observedAt", headerName: "Checked", width: 104, cellRenderer: CheckedCell,
+      colId: "checked", field: "observedAt", headerName: "Checked", width: 100, cellRenderer: CheckedCell,
       comparator: (a, b) => String(b ?? "").localeCompare(String(a ?? "")),
     },
-    { colId: "actions", headerName: "", width: 212, sortable: false, cellRenderer: ActionsCell, cellRendererParams: { get actions() { return actionsRef.current; } } },
+    { colId: "actions", headerName: "", width: 218, sortable: false, cellRenderer: ActionsCell, cellRendererParams: { get actions() { return actionsRef.current; } } },
   ], []);
 
   const activityColumns = useMemo<ColDef<ActivityEvent>[]>(() => [
@@ -208,7 +212,7 @@ export default function PriceGrids({ rows, activity, sortResetKey, search, actio
           theme={theme}
           rowData={rows}
           columnDefs={columns}
-          defaultColDef={{ sortable: true, resizable: true, suppressHeaderMenuButton: true }}
+          defaultColDef={{ sortable: true, resizable: true, suppressHeaderMenuButton: true, cellStyle: ROW_CENTER }}
           quickFilterText={search}
           getRowId={(p) => p.data.id}
           rowHeight={68}
@@ -238,7 +242,7 @@ export default function PriceGrids({ rows, activity, sortResetKey, search, actio
             theme={theme}
             rowData={activity}
             columnDefs={activityColumns}
-            defaultColDef={{ sortable: true, resizable: true, suppressHeaderMenuButton: true }}
+            defaultColDef={{ sortable: true, resizable: true, suppressHeaderMenuButton: true, cellStyle: ROW_CENTER }}
             getRowId={(p) => p.data.id}
             rowHeight={52}
             animateRows={false}
