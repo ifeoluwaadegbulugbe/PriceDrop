@@ -6,7 +6,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
 
 const ART: Record<string, { icon: LucideIcon; from: string; to: string }> = {
   electronics: { icon: Smartphone, from: "#e4ecff", to: "#c9d8ff" },
@@ -25,25 +24,12 @@ const ART: Record<string, { icon: LucideIcon; from: string; to: string }> = {
 
 export type TileCategory = { slug: string; name: string; description: string };
 
-function TileArt({ category, imageUrl }: { category: TileCategory; imageUrl: string | null }) {
-  const [failed, setFailed] = useState(false);
+function TileArt({ category }: { category: TileCategory }) {
   const art = ART[category.slug] ?? { icon: Package, from: "#f1f1f4", to: "#dfdfe6" };
   const Icon = art.icon;
   return (
     <div aria-hidden className="absolute inset-0" style={{ background: `linear-gradient(145deg, ${art.from}, ${art.to})` }}>
-      {imageUrl && !failed ? (
-        // eslint-disable-next-line @next/next/no-img-element -- catalogue CDN images aren't a fixed domain list
-        <img
-          src={imageUrl}
-          alt=""
-          loading="lazy"
-          referrerPolicy="no-referrer"
-          onError={() => setFailed(true)}
-          className="absolute right-0 bottom-0 h-[72%] w-[72%] object-contain object-bottom-right mix-blend-multiply transition-transform duration-300 group-hover:scale-105"
-        />
-      ) : (
-        <Icon strokeWidth={1.1} className="absolute -right-3 -bottom-3 size-[62%] max-h-44 text-black/25 transition-transform duration-300 group-hover:scale-105" />
-      )}
+      <Icon strokeWidth={1.1} className="absolute -right-3 -bottom-3 size-[62%] max-h-44 text-black/25 transition-transform duration-300 group-hover:scale-105" />
     </div>
   );
 }
@@ -57,14 +43,14 @@ function TileText({ category, showDescription }: { category: TileCategory; showD
   );
 }
 
-/** Large image-led tile linking to a category page. */
-export function CategoryTile({ category, imageUrl, className }: { category: TileCategory; imageUrl: string | null; className?: string }) {
+/** Large illustrated tile linking to a category page. */
+export function CategoryTile({ category, className }: { category: TileCategory; className?: string }) {
   return (
     <Link
       href={`/categories/${category.slug}`}
       className={cn("group relative block min-h-36 overflow-hidden rounded-2xl sm:min-h-44", className)}
     >
-      <TileArt category={category} imageUrl={imageUrl} />
+      <TileArt category={category} />
       <TileText category={category} showDescription />
     </Link>
   );
@@ -73,12 +59,10 @@ export function CategoryTile({ category, imageUrl, className }: { category: Tile
 /** The same tile as a multi-select control, for onboarding and settings. */
 export function SelectableTile({
   category,
-  imageUrl,
   selected,
   onToggle,
 }: {
   category: TileCategory;
-  imageUrl: string | null;
   selected: boolean;
   onToggle: () => void;
 }) {
@@ -93,7 +77,7 @@ export function SelectableTile({
         selected ? "ring-3 ring-brand" : "ring-1 ring-black/5",
       )}
     >
-      <TileArt category={category} imageUrl={imageUrl} />
+      <TileArt category={category} />
       <TileText category={category} showDescription={false} />
       <span
         aria-hidden

@@ -119,7 +119,7 @@ function seedForCategory(terms: string[], query?: string): ProductCard[] {
   return [...pool.values()].filter((c) => matches.has(c.id));
 }
 
-type CachedList = { ids: string[]; imageUrl: string | null };
+type CachedList = { ids: string[] };
 
 async function readList(deps: Deps, key: string) {
   const { data } = await deps.db.from("discovery_cache").select("value,fetched_at").eq("key", key).maybeSingle();
@@ -140,7 +140,7 @@ async function refreshList(deps: Deps, category: CategoryRow, currency: string):
     });
     const usable = cards.filter((c) => c.offers.length > 0);
     await writeSnapshots(deps, currency, usable);
-    const value: CachedList = { ids: usable.map((c) => c.id), imageUrl: usable.find((c) => c.imageUrl)?.imageUrl ?? null };
+    const value: CachedList = { ids: usable.map((c) => c.id) };
     await deps.db
       .from("discovery_cache")
       .upsert({ key: listKey(currency, category.slug), value, fetched_at: deps.now().toISOString() }, { onConflict: "key" });
@@ -187,22 +187,6 @@ export async function categoryProducts(
   const ids = opts.limit ? list.ids.slice(0, opts.limit) : list.ids;
   const cards = await hydrateCards(deps, ids.map((id) => ({ source: "channel3" as const, id })), currency);
   return { cards, source: cards.length ? "channel3" : "none", fallbackReason: null };
-}
-
-/** Top-level tile images: whatever the cached lists already hold. Costs nothing. */
-export async function categoryImages(deps: Deps, categories: CategoryRow[], currency: string): Promise<Record<string, string>> {
-  const out: Record<string, string> = {};
-  for (const c of categories) if (c.image_url) out[c.slug] = c.image_url;
-  if (categories.length === 0) return out;
-  const { data } = await deps.db
-    .from("discovery_cache")
-    .select("key,value")
-    .in("key", categories.map((c) => listKey(currency, c.slug)));
-  for (const row of (data ?? []) as { key: string; value: CachedList }[]) {
-    const slug = row.key.split(":").pop()!;
-    if (row.value.imageUrl && !out[slug]) out[slug] = row.value.imageUrl;
-  }
-  return out;
 }
 
 /** Called by the monitor: at most one stale category per run, and only under 60% of the monthly budget. */

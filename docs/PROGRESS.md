@@ -56,7 +56,7 @@ A manual run of the workflow reached the deployed app: `{"checked":3,"ok":3,"fai
 
 Plan: `docs/PLAN-AGENT.md`. No database migration was needed.
 
-Built: a conversational assistant at `/assistant` and on Home; deal checks, alternatives, comparison and questions about saved items; `/categories`, `/saved`, `/price-drops`, `/compare`; a new four-step introduction; a getting-started checklist worked out from real records; new navigation; consumer wording throughout. AG Grid stays at `/price-intelligence`, titled Price details. `/watchlist` redirects to `/saved`.
+Built: a conversational assistant at `/assistant` and on Home; deal checks, alternatives, comparison and questions about saved items; `/categories`, `/saved`, `/price-drops`, `/compare`; a new three-step introduction (the owner asked for every category to show at once, so the welcome and interests screens became one); a getting-started checklist worked out from real records; new navigation; consumer wording throughout. AG Grid stays at `/price-intelligence`, titled Price details. `/watchlist` redirects to `/saved`.
 
 Checked locally against the emulator and the Demo catalogue: 250 tests, lint, types, the bundle check, the RLS script and the HTTP security script, plus a browser walkthrough at 375px and 1280px: sign-up, introduction, the laptop and gift follow-up questions, budget search, relaxing a budget, deal check, alternatives, comparing, saving, setting an ideal price, a simulated drop, Saved items, Price drops, Price details, and the checklist reaching 6 of 6 and being dismissed.
 

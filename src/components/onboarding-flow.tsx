@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { api } from "@/lib/api/client";
+import { forgetShoppingSession } from "@/lib/compare-store";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 
 export const SUGGESTED_BRANDS = ["Apple", "Samsung", "Sony", "Nike", "Adidas", "HP", "Dell", "LG", "L'Oréal", "Zara"];
@@ -78,19 +79,17 @@ export function PrefToggles({ prefs, onChange }: { prefs: string[]; onChange: (p
   );
 }
 
-const STEPS = 4;
+const STEPS = 3;
 
 const EXAMPLES = ["Find me a good phone under $300", "Compare these two laptops", "Is there a cheaper alternative?"];
 
 export function OnboardingFlow({
   userId,
   categories,
-  images,
   initial,
 }: {
   userId: string;
   categories: TileCategory[];
-  images: Record<string, string>;
   initial: Draft;
 }) {
   const router = useRouter();
@@ -144,6 +143,7 @@ export function OnboardingFlow({
     } catch {
       // As above.
     }
+    forgetShoppingSession();
     router.replace("/dashboard");
     router.refresh();
   }
@@ -165,31 +165,20 @@ export function OnboardingFlow({
 
       {step === 0 && (
         <section className="grid flex-1 content-start gap-5">
-          <div className="flex size-16 items-center justify-center rounded-2xl bg-brand-soft"><Sparkles aria-hidden className="size-8 text-brand" /></div>
+          <div className="flex size-14 items-center justify-center rounded-2xl bg-brand-soft"><Sparkles aria-hidden className="size-7 text-brand" /></div>
           <div>
-            <h1 className="text-4xl leading-tight font-semibold">Meet your personal AI shopping assistant.</h1>
-            <p className="mt-3 text-base text-muted-foreground">Find products, compare options and get help knowing when it&apos;s a good time to buy.</p>
+            <h1 className="text-3xl leading-tight font-semibold sm:text-4xl">Meet your personal AI shopping assistant.</h1>
+            <p className="mt-2 text-base text-muted-foreground">Find products, compare options and get help knowing when it&apos;s a good time to buy.</p>
           </div>
-          <div className="grid grid-cols-2 gap-2.5" aria-hidden>
-            {categories.slice(0, 4).map((c) => (
-              <SelectableTile key={c.slug} category={c} imageUrl={images[c.slug] ?? null} selected={false} onToggle={() => setStep(1)} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {step === 1 && (
-        <section className="grid flex-1 content-start gap-4">
           <div>
-            <h1 className="text-3xl font-semibold">What do you usually shop for?</h1>
-            <p className="mt-2 text-sm text-muted-foreground">We&apos;ll use your interests to help show you products you&apos;ll love.</p>
+            <h2 className="text-xl font-semibold">What do you usually shop for?</h2>
+            <p className="mt-1 text-sm text-muted-foreground">We&apos;ll use your interests to help show you products you&apos;ll love.</p>
           </div>
           <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
             {categories.map((c) => (
               <SelectableTile
                 key={c.slug}
                 category={c}
-                imageUrl={images[c.slug] ?? null}
                 selected={draft.interests.includes(c.slug)}
                 onToggle={() => setDraft((d) => ({ ...d, interests: d.interests.includes(c.slug) ? d.interests.filter((s) => s !== c.slug) : [...d.interests, c.slug] }))}
               />
@@ -198,7 +187,7 @@ export function OnboardingFlow({
         </section>
       )}
 
-      {step === 2 && (
+      {step === 1 && (
         <section className="grid flex-1 content-start gap-5">
           <div>
             <h1 className="text-3xl font-semibold">Just tell PriceDrop what you need.</h1>
@@ -214,7 +203,7 @@ export function OnboardingFlow({
         </section>
       )}
 
-      {step === 3 && (
+      {step === 2 && (
         <section className="grid flex-1 content-start gap-5">
           <div className="flex size-16 items-center justify-center rounded-2xl bg-brand-soft"><BellRing aria-hidden className="size-8 text-brand" /></div>
           <div>
@@ -235,7 +224,7 @@ export function OnboardingFlow({
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
       <div className="sticky bottom-20 pb-2 md:bottom-4">
         <Button size="lg" className="h-12 w-full text-base" disabled={busy} onClick={next}>
-          {step === 0 ? "Get started" : step === STEPS - 1 ? (busy ? "Saving..." : "Start shopping") : "Continue"}
+          {step === STEPS - 1 ? (busy ? "Saving..." : "Start shopping") : "Continue"}
         </Button>
       </div>
     </div>

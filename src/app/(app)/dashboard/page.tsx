@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { loadChecklist } from "@/lib/checklist-load";
 import type { CategoryRow, ProfileRow } from "@/lib/db/types";
 import {
-  categoryImages, hydrateCards, loadCategories, pickedForYou, popularProducts, topLevel, trendingDrops, type ProductRef,
+  hydrateCards, loadCategories, pickedForYou, popularProducts, topLevel, trendingDrops, type ProductRef,
 } from "@/lib/discovery/service";
 import { getDeps } from "@/lib/serverDeps";
 import { shopperState } from "@/lib/shopper";
@@ -50,14 +50,13 @@ const Empty = ({ children }: { children: React.ReactNode }) => (
   <p className="rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">{children}</p>
 );
 
-async function CategoryTiles({ tops, currency }: { tops: CategoryRow[]; currency: string }) {
-  const images = await categoryImages(getDeps(), tops, currency);
+function CategoryTiles({ tops }: { tops: CategoryRow[] }) {
   return (
     <ul className="grid grid-cols-2 gap-3 md:grid-cols-4">
       {tops.map((c, i) => (
         // Wide tiles at 0, 5, 6 and 11 fill the four-column grid exactly.
         <li key={c.slug} className={[0, 5, 6, 11].includes(i) ? "md:col-span-2" : ""}>
-          <CategoryTile category={c} imageUrl={images[c.slug] ?? null} className="h-full" />
+          <CategoryTile category={c} className="h-full" />
         </li>
       ))}
     </ul>
@@ -193,6 +192,8 @@ export default async function Home() {
 
   return (
     <div className="grid gap-8 sm:gap-10">
+      {checklist.visible && <GettingStarted checklist={checklist} />}
+
       <section aria-label="Ask PriceDrop" className="grid gap-4 rounded-3xl bg-accent/70 p-5 sm:p-8">
         <Greeting />
         <div>
@@ -202,8 +203,6 @@ export default async function Home() {
         <AskBar large suggestions={PROMPTS} />
       </section>
 
-      {checklist.visible && <GettingStarted checklist={checklist} />}
-
       {ready > 0 && (
         <Link href="/saved" className="flex items-center justify-between gap-3 rounded-2xl bg-deal-soft px-4 py-3 text-sm font-medium text-deal">
           {ready === 1 ? "1 item is" : `${ready} items are`} at your ideal price
@@ -212,9 +211,7 @@ export default async function Home() {
       )}
 
       <Section title="Explore products">
-        <Suspense fallback={<GridSkeleton count={8} />}>
-          <CategoryTiles tops={tops} currency={profile.currency} />
-        </Suspense>
+        <CategoryTiles tops={tops} />
       </Section>
 
       <Suspense fallback={sectionFallback}><PickedSection profile={profile} all={all} state={state} /></Suspense>

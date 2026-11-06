@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { SettingsForm, SignOutButton } from "@/components/profile-forms";
-import { categoryImages, loadCategories, topLevel } from "@/lib/discovery/service";
+import { loadCategories, topLevel } from "@/lib/discovery/service";
 import { getEnv, isPaypalConfigured } from "@/lib/env";
 import { paypalSetupStatus } from "@/lib/paypal/status";
 import { getDeps } from "@/lib/serverDeps";
@@ -13,7 +13,6 @@ export default async function SettingsPage() {
   const env = getEnv();
   const deps = getDeps();
   const tops = topLevel(await loadCategories(deps));
-  const images = await categoryImages(deps, tops, profile?.currency ?? "USD");
   const paypal = isPaypalConfigured() ? await paypalSetupStatus(deps) : { ok: false, message: "PayPal sandbox isn't set up on this deployment." };
   const status = [
     { label: "Product data", value: env.CHANNEL3_API_KEY ? "Channel3 live" : "Demo catalogue only" },
@@ -34,7 +33,6 @@ export default async function SettingsPage() {
         brands={profile?.favourite_brands ?? []}
         prefs={profile?.shopping_preferences ?? []}
         categories={tops.map((c) => ({ slug: c.slug, name: c.name, description: c.description }))}
-        images={images}
       />
       <nav aria-label="More" className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
         <Link href="/purchases" className="font-medium text-primary hover:underline">Purchases</Link>

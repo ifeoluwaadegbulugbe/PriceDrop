@@ -38,6 +38,18 @@ export function toggleCompare(key: string) {
   else if (cur.length < COMPARE_MAX) write([...cur, key]);
 }
 export const clearCompare = () => write([]);
+
+export const CHAT_STORE = "pricedrop:chat";
+
+/** This browser's picks and conversation belong to one person, so they end with that person's session. */
+export function forgetShoppingSession() {
+  clearCompare();
+  try {
+    sessionStorage.removeItem(CHAT_STORE);
+  } catch {
+    // Storage may be blocked, in which case nothing was kept.
+  }
+}
 /** The current picks, for reading at the moment of an action rather than on every render. */
 export const currentCompare = () => read();
 

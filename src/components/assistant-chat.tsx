@@ -7,13 +7,12 @@ import { FallbackBanner, ProductGrid } from "@/components/product-grid";
 import { buttonVariants } from "@/components/ui/button";
 import { api, errorMessage } from "@/lib/api/client";
 import type { ChatReply, Slots } from "@/lib/assistant/engine";
-import { currentCompare } from "@/lib/compare-store";
+import { CHAT_STORE, currentCompare } from "@/lib/compare-store";
 
 type Reply = ChatReply & { savedKeys: string[]; trackedByKey: Record<string, string> };
 type Turn = { role: "user"; text: string } | { role: "assistant"; reply: Reply };
 type Ref = { source: "channel3" | "seed"; id: string };
 
-const STORE = "pricedrop:chat";
 const STARTERS = [
   "Find me a good phone under $300",
   "I need a laptop for university",
@@ -99,7 +98,7 @@ export function AssistantChat({ initialPrompt, productKey, productTitle, categor
       }
       if (hasContext) return;
       try {
-        const saved = JSON.parse(sessionStorage.getItem(STORE) ?? "null") as { turns: Turn[]; slots: Slots; shown: Ref[] } | null;
+        const saved = JSON.parse(sessionStorage.getItem(CHAT_STORE) ?? "null") as { turns: Turn[]; slots: Slots; shown: Ref[] } | null;
         if (saved?.turns?.length) {
           setTurns(saved.turns);
           setSlots(saved.slots ?? {});
@@ -115,7 +114,7 @@ export function AssistantChat({ initialPrompt, productKey, productTitle, categor
   useEffect(() => {
     if (turns.length === 0) return;
     try {
-      sessionStorage.setItem(STORE, JSON.stringify({ turns: turns.slice(-20), slots, shown }));
+      sessionStorage.setItem(CHAT_STORE, JSON.stringify({ turns: turns.slice(-20), slots, shown }));
     } catch {
       // Convenience only.
     }

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { forgetShoppingSession } from "@/lib/compare-store";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 
 export function SignOutButton() {
@@ -18,6 +19,7 @@ export function SignOutButton() {
       variant="outline"
       onClick={async () => {
         await createBrowserSupabase().auth.signOut();
+        forgetShoppingSession();
         router.replace("/");
         router.refresh();
       }}
@@ -35,7 +37,6 @@ export function SettingsForm({
   brands: initialBrands,
   prefs: initialPrefs,
   categories,
-  images,
 }: {
   userId: string;
   displayName: string;
@@ -44,7 +45,6 @@ export function SettingsForm({
   brands: string[];
   prefs: string[];
   categories: TileCategory[];
-  images: Record<string, string>;
 }) {
   const router = useRouter();
   const [displayName, setDisplayName] = useState(initialName);
@@ -83,7 +83,6 @@ export function SettingsForm({
             <SelectableTile
               key={c.slug}
               category={c}
-              imageUrl={images[c.slug] ?? null}
               selected={interests.includes(c.slug)}
               onToggle={() => setInterests((cur) => (cur.includes(c.slug) ? cur.filter((s) => s !== c.slug) : [...cur, c.slug]))}
             />
