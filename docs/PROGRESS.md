@@ -48,6 +48,10 @@ Two setup problems came first, both outside the code:
 - Local emulator values had reached the deployment's settings, including `PAYPAL_BASE_URL`, giving "couldn't reach PayPal".
 - PayPal's "merchant isn't able to accept PayPal payments" appeared before the owner changed the sandbox setup. A new US sandbox business account with a new app was the suggested fix.
 
+## Scheduler on real infrastructure (2026-11-06)
+
+A manual run of the workflow reached the deployed app: `{"checked":3,"ok":3,"failed":0,"observationsWritten":5,...}`. The Supabase step returned 401 because it read a table that logged-out access is blocked from, which is the intended rule. It now calls the auth health endpoint, which returned 200 when tested against the real project. The changed workflow hasn't run on GitHub yet. Whether the health call alone counts as activity for Supabase's pause rule isn't confirmed; the monitor's database queries are the main keep-alive.
+
 ## What is real, what is emulated
 
 | Piece | Status |
@@ -59,7 +63,7 @@ Two setup problems came first, both outside the code:
 | Channel3 client | **Called for real**: search and retrieve work. Fallback to the Demo catalogue tested |
 | Gemini | **Never called**. Off by default, basic mode tested |
 | Webhook | Logic tested, signature path tested as rejection only |
-| Vercel, GitHub Actions | **Not deployed, never run** |
+| Vercel, GitHub Actions | **Deployed and run.** The monitor step works on the live site. Scheduled frequency is still to be observed |
 
 ## Not done
 

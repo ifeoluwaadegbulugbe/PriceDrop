@@ -26,7 +26,9 @@ jobs:
             -H "Authorization: Bearer $CRON_SECRET" \
             "$APP_URL/api/cron/monitor"
 
-      # Free Supabase projects pause after a week of inactivity. Runs even if the app step failed.
+      # Free Supabase projects pause after a week of inactivity. The monitor above queries the database on every run,
+      # which is the main keep-alive. This also touches the project if the app is down. It can't read a table:
+      # logged-out access to every table is revoked on purpose.
       - name: Keep Supabase active
         if: always()
         env:
@@ -39,5 +41,4 @@ jobs:
           fi
           curl --fail --silent --show-error --max-time 30 -o /dev/null \
             -H "apikey: $SUPABASE_ANON_KEY" \
-            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
-            "$SUPABASE_URL/rest/v1/products?select=id&limit=1"
+            "$SUPABASE_URL/auth/v1/health"
