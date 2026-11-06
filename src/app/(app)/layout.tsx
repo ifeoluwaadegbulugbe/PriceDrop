@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { AppHeader } from "@/components/app-header";
+import { CompareTray } from "@/components/compare-tray";
 import { Logo } from "@/components/logo";
 import { SetupNotice } from "@/components/setup-notice";
 import type { NotificationRow } from "@/lib/db/types";
@@ -34,6 +35,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         </p>
       )}
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-5 pb-24 sm:pt-8 md:pb-10">{children}</main>
+      <CompareTray />
     </div>
   );
 }

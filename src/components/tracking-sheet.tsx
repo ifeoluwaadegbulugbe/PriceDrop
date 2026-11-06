@@ -51,6 +51,7 @@ function TrackingForm({ target, currency, onClose }: { target: SheetTarget; curr
   const suggested = edit ? target.targetCents : target.suggestedTargetCents;
   const [targetInput, setTargetInput] = useState(centsToInput(suggested));
   const [maxInput, setMaxInput] = useState(centsToInput(edit ? target.maxCents : suggested));
+  const [maxTouched, setMaxTouched] = useState(edit);
   const [domains, setDomains] = useState<string[]>(edit ? target.allowedDomains : []);
   const [variants, setVariants] = useState<string[]>(edit ? (target.allowedVariants ?? []) : []);
   const [inStock, setInStock] = useState(edit ? target.requireInStock : true);
@@ -64,9 +65,9 @@ function TrackingForm({ target, currency, onClose }: { target: SheetTarget; curr
     e.preventDefault();
     const targetCents = parseMoneyInput(targetInput);
     const maxCents = parseMoneyInput(maxInput);
-    if (targetCents === null) return setError("Enter a target price, like 90 or 89.99.");
-    if (maxCents === null) return setError("Enter a maximum total, like 100.");
-    if (targetCents > maxCents) return setError("Your target can't be above your maximum total.");
+    if (targetCents === null) return setError("Enter your ideal price, like 90 or 89.99.");
+    if (maxCents === null) return setError("Enter the most you'd pay in total, like 100.");
+    if (targetCents > maxCents) return setError("Your ideal price can't be above the most you'd pay in total.");
     setBusy(true);
     setError(null);
     const rules = {
@@ -97,22 +98,23 @@ function TrackingForm({ target, currency, onClose }: { target: SheetTarget; curr
   return (
     <form onSubmit={submit} className="flex h-full flex-col gap-5 p-5">
       <SheetHeader className="p-0 pr-8">
-        <SheetTitle className="font-display text-xl">{edit ? "Edit your rules" : "Set your rules"}</SheetTitle>
+        <SheetTitle className="font-display text-xl">{edit ? "Change what you'd pay" : "What would you like to pay?"}</SheetTitle>
         <SheetDescription className="break-words">{target.title}</SheetDescription>
       </SheetHeader>
 
-      <div className="grid gap-4">
-        <div className="grid gap-1.5">
-          <Label htmlFor={`${id}-target`}>Target price ({currency})</Label>
-          <Input id={`${id}-target`} inputMode="decimal" autoComplete="off" required className="tnum h-11" value={targetInput} onChange={(e) => setTargetInput(e.target.value)} />
-          <p className="text-xs text-muted-foreground">We flag a deal when the item price is at or below this.</p>
+      <div className="grid gap-1.5">
+          <Label htmlFor={`${id}-target`}>My ideal price ({currency})</Label>
+          <Input id={`${id}-target`} inputMode="decimal" autoComplete="off" required className="tnum h-11" value={targetInput} onChange={(e) => { setTargetInput(e.target.value); if (!maxTouched) setMaxInput(e.target.value); }} />
+          <p className="text-xs text-muted-foreground">I&apos;ll keep an eye on this and tell you when the price is at or below it.</p>
         </div>
+      <details className="group grid gap-5">
+        <summary className="min-h-9 cursor-pointer text-sm font-medium text-primary">More options</summary>
+        <div className="mt-3 grid gap-5">
         <div className="grid gap-1.5">
-          <Label htmlFor={`${id}-max`}>Maximum total ({currency})</Label>
-          <Input id={`${id}-max`} inputMode="decimal" autoComplete="off" required className="tnum h-11" value={maxInput} onChange={(e) => setMaxInput(e.target.value)} />
+          <Label htmlFor={`${id}-max`}>The most I&apos;d pay in total ({currency})</Label>
+          <Input id={`${id}-max`} inputMode="decimal" autoComplete="off" required className="tnum h-11" value={maxInput} onChange={(e) => { setMaxTouched(true); setMaxInput(e.target.value); }} />
           <p className="text-xs text-muted-foreground">Price plus shipping, when shipping is known. Often it isn&apos;t, and we&apos;ll say so.</p>
         </div>
-      </div>
 
       {target.domains.length > 0 && (
         <fieldset className="grid gap-2">
@@ -129,7 +131,7 @@ function TrackingForm({ target, currency, onClose }: { target: SheetTarget; curr
 
       {target.variants.length > 0 && (
         <fieldset className="grid gap-2">
-          <legend className="mb-1 text-sm font-medium">Variants</legend>
+          <legend className="mb-1 text-sm font-medium">Options</legend>
           {target.variants.map((v) => (
             <Label key={v} className="flex min-h-9 items-center gap-2 font-normal">
               <Checkbox checked={variants.includes(v)} onCheckedChange={(c) => toggle(variants, setVariants, v, c === true)} />
@@ -143,13 +145,15 @@ function TrackingForm({ target, currency, onClose }: { target: SheetTarget; curr
         Only when in stock
         <Switch checked={inStock} onCheckedChange={setInStock} />
       </Label>
+        </div>
+      </details>
 
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
 
       <div className="mt-auto flex gap-2 pt-2">
         <Button type="button" variant="outline" size="lg" className="flex-1" onClick={onClose}>Cancel</Button>
         <Button type="submit" size="lg" className="flex-1" disabled={busy}>
-          {busy ? "Saving..." : edit ? "Save rules" : "Start tracking"}
+          {busy ? "Saving..." : edit ? "Save" : "Watch this item"}
         </Button>
       </div>
     </form>

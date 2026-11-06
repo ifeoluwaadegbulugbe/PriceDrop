@@ -43,7 +43,7 @@ function amountToCents(num: string, k: string | undefined): number | null {
 
 const ARTICLE = String.raw`(?:\s+(?:this|the|a|an|some))?`;
 const LEAD = new RegExp(
-  String.raw`^\s*(?:please\s+)?(?:can you\s+|could you\s+)?(?:track${ARTICLE}|watch(?:\s+for)?${ARTICLE}|find(?:\s+me)?${ARTICLE}|show(?:\s+me)?${ARTICLE}|i\s+(?:want|need)(?:\s+to\s+buy)?${ARTICLE}|i(?:'|’)?m\s+looking\s+for${ARTICLE}|looking\s+for${ARTICLE}|get\s+me${ARTICLE}|buy(?:\s+me)?${ARTICLE}|alert\s+me\s+(?:on|about|for)${ARTICLE})\b[:\s]*`,
+  String.raw`^\s*(?:please\s+)?(?:can you\s+|could you\s+)?(?:help\s+me\s+find${ARTICLE}|recommend${ARTICLE}|i(?:'|’)?d\s+like${ARTICLE}|track${ARTICLE}|watch(?:\s+for)?${ARTICLE}|find(?:\s+me)?${ARTICLE}|show(?:\s+me)?${ARTICLE}|i\s+(?:want|need)(?:\s+to\s+buy)?${ARTICLE}|i(?:'|’)?m\s+looking\s+for${ARTICLE}|looking\s+for${ARTICLE}|get\s+me${ARTICLE}|buy(?:\s+me)?${ARTICLE}|alert\s+me\s+(?:on|about|for)${ARTICLE})\b[:\s]*`,
   "i",
 );
 
@@ -81,7 +81,7 @@ export function parseIntentFallback(input: string, defaultCurrency = "USD"): Int
   }
 
   const product = text
-    .replace(/\b(please|thanks|thank you|affordable|cheap)\b/gi, " ")
+    .replace(/\b(please|thanks|thank you|affordable|cheap|good|great|nice|really)\b/gi, " ")
     .replace(/[,;:.!?()]+/g, " ")
     .replace(/\s+/g, " ")
     .replace(/\s+(?:for|at|and|that|which|but|with|costing|priced)\s*$/i, "")

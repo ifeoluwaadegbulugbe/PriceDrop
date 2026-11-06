@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AskBar } from "@/components/ask-bar";
 import { DeltaBadge, DemoCatalogueBadge, LiveBadge, SimulationBadge, SourceBadge, TrackedStatusBadge } from "@/components/badges";
 import { PriceChart } from "@/components/price-chart";
 import { ProductActions, SimulatePanel } from "@/components/product-actions";
@@ -54,7 +55,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
 
   return (
     <div className="grid gap-6">
-      <nav aria-label="Breadcrumb"><Link href="/dashboard" className="text-sm text-muted-foreground hover:underline">Dashboard</Link></nav>
+      <nav aria-label="Breadcrumb"><Link href="/saved" className="text-sm text-muted-foreground hover:underline">Saved items</Link></nav>
 
       <div className="grid gap-5 md:grid-cols-[220px_1fr]">
         <ProductTile title={product.title} imageUrl={product.image_url} className="w-full max-w-56" />
@@ -82,11 +83,11 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
                   <> · <a href={best.url} target="_blank" rel="noopener noreferrer nofollow sponsored" className="text-primary hover:underline">View retailer</a></>
                 )}
               </p>
-              <p className="text-xs text-muted-foreground">Fetched {dateTime(snap.fetchedAt)}</p>
+              <p className="text-xs text-muted-foreground">Today&apos;s price, checked {dateTime(snap.fetchedAt)}</p>
             </div>
           ) : lastObs ? (
             <p className="text-sm text-muted-foreground">
-              We couldn&apos;t get a current price. Last observed:{" "}
+              We couldn&apos;t check the price right now. Last recorded:{" "}
               <span className="tnum font-medium text-foreground">{formatCents(lastObs.price_cents, lastObs.currency)}</span> at {lastObs.domain}, {timeAgo(lastObs.observed_at)}.
             </p>
           ) : (
@@ -94,8 +95,8 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
           )}
 
           <dl className="tnum grid grid-cols-2 gap-3 text-sm sm:max-w-sm">
-            <div><dt className="text-muted-foreground">Your target</dt><dd className="font-semibold">{formatCents(tracked.target_price_cents, tracked.currency)}</dd></div>
-            <div><dt className="text-muted-foreground">Maximum total</dt><dd className="font-semibold">{formatCents(tracked.max_total_cents, tracked.currency)}</dd></div>
+            <div><dt className="text-muted-foreground">My ideal price</dt><dd className="font-semibold">{formatCents(tracked.target_price_cents, tracked.currency)}</dd></div>
+            <div><dt className="text-muted-foreground">The most I&apos;d pay</dt><dd className="font-semibold">{formatCents(tracked.max_total_cents, tracked.currency)}</dd></div>
           </dl>
         </div>
       </div>
@@ -104,7 +105,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
         <div className="grid gap-2">
           {alerts.map((a) => (
             <Link key={a.id} href={`/deals/${a.id}`} className="tnum block rounded-2xl border-2 border-deal/40 bg-deal-soft p-4 text-sm font-medium text-deal hover:border-deal">
-              A deal is waiting: {formatCents(a.price_cents, tracked.currency)} at {a.domain}. Review it →
+              Ready when you are: {formatCents(a.price_cents, tracked.currency)} at {a.domain}. Take a look →
             </Link>
           ))}
         </div>
@@ -136,12 +137,12 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
       />
 
       <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
-        <section aria-label="Price history" className="grid content-start gap-3 rounded-2xl border bg-card p-4">
-          <h2 className="text-lg font-semibold">Price history</h2>
+        <section aria-label="How the price has changed" className="grid content-start gap-3 rounded-2xl border bg-card p-4">
+          <h2 className="text-lg font-semibold">How the price has changed</h2>
           {observations.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No prices recorded yet. Run Check now to record the first one.</p>
+            <p className="text-sm text-muted-foreground">No prices recorded yet. Tap Check now to record the first one.</p>
           ) : !hasHistory ? (
-            <p className="text-sm text-muted-foreground">Starting prices recorded. A chart appears once we observe a price at a later time.</p>
+            <p className="text-sm text-muted-foreground">Starting prices recorded. A chart appears once we record a price at a later time.</p>
           ) : null}
           {hasHistory && (
             <PriceChart observations={observations} targetCents={tracked.target_price_cents} currency={tracked.currency} />
@@ -161,21 +162,21 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
         </section>
 
         <div className="grid content-start gap-6">
-          <section aria-label="Latest evaluation" className="grid gap-3 rounded-2xl border bg-card p-4">
-            <h2 className="text-lg font-semibold">Latest evaluation</h2>
+          <section aria-label="Is it a good deal?" className="grid gap-3 rounded-2xl border bg-card p-4">
+            <h2 className="text-lg font-semibold">Is it a good deal?</h2>
             {snap.ok && snap.evaluation && best ? (
               <>
                 <p className="text-sm text-muted-foreground break-all">
-                  {snap.evaluation.decision === "qualifies" ? "Meets your rules" : snap.evaluation.decision === "insufficient_info" ? "Missing information" : "Doesn't meet your rules"} at {best.domain}
+                  {snap.evaluation.decision === "qualifies" ? "Matches what you asked for" : snap.evaluation.decision === "insufficient_info" ? "Missing information" : "Doesn't match what you asked for yet"} at {best.domain}
                 </p>
                 <RuleList evaluation={snap.evaluation} />
               </>
             ) : (
-              <p className="text-sm text-muted-foreground">We can&apos;t evaluate without a current price.</p>
+              <p className="text-sm text-muted-foreground">We can&apos;t say without today&apos;s price.</p>
             )}
             {sorted.length > 1 && (
               <div className="grid gap-1.5 border-t pt-3">
-                <h3 className="text-sm font-semibold">All current offers</h3>
+                <h3 className="text-sm font-semibold">Every retailer today</h3>
                 <ul className="tnum grid gap-1 text-sm">
                   {sorted.map((o) => (
                     <li key={o.domain} className="flex justify-between gap-3">
@@ -191,13 +192,19 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
         </div>
       </div>
 
+      <AskBar
+        placeholder="Ask PriceDrop about this item"
+        suggestions={["Is this a good deal?", "Find cheaper alternatives", "Compare with similar products"]}
+        context={{ product: `${product.source}:${product.external_id}` }}
+      />
+
       <footer className="grid gap-2 border-t pt-4 text-sm text-muted-foreground">
-        <p>Last checked {timeAgo(tracked.last_checked_at)}. Automatic checks run about every 30 minutes (best effort).</p>
+        <p>Last checked {timeAgo(tracked.last_checked_at)}. Checks are scheduled every 30 minutes but can run hours late.</p>
         {product.source === "channel3" && <p className="text-xs">Retailer links may earn PriceDrop a commission.</p>}
         {tracked.status === "paused" && <p>Automatic checks are paused for this product.</p>}
         {behind && (
           <p role="status" className="rounded-lg bg-caution-soft px-3 py-2 text-caution">
-            The scheduler looks behind: this product hasn&apos;t been checked in over 90 minutes. Use Check now for a fresh price.
+            This item hasn&apos;t been checked in over 90 minutes, which can happen on our free scheduler. Use Check now for a fresh price.
           </p>
         )}
       </footer>

@@ -44,9 +44,9 @@ export type RowActions = {
 };
 
 const FILTERS: { value: StatusFilter; label: string }[] = [
-  { value: "all", label: "All products" },
+  { value: "all", label: "All items" },
   { value: "price_dropped", label: "Price dropped" },
-  { value: "target_reached", label: "Target reached" },
+  { value: "target_reached", label: "At my ideal price" },
   { value: "watching", label: "Still watching" },
   { value: "paused", label: "Paused" },
 ];
@@ -55,10 +55,10 @@ const SORT_LABELS: { value: SortKey; label: string }[] = [
   { value: "lowest_price", label: "Lowest price" },
   { value: "highest_price", label: "Highest price" },
   { value: "biggest_drop", label: "Biggest price drop" },
-  { value: "closest_to_target", label: "Closest to target" },
+  { value: "closest_to_target", label: "Closest to ideal price" },
   { value: "recently_checked", label: "Recently checked" },
 ];
-const EXAMPLES = ["Which of my products has dropped the most?", "Have any reached their target?", "Which are closest to my target?"];
+const EXAMPLES = ["Which of my items has dropped the most?", "Are any at my ideal price?", "Which are closest to my ideal price?"];
 
 const STATUS_CLASS: Record<RowStatus, string> = {
   target_reached: "bg-deal-soft text-deal",
@@ -93,16 +93,16 @@ function MobileCard({ row, actions }: { row: IntelligenceRow; actions: RowAction
       </Link>
       <dl className="tnum grid grid-cols-2 gap-2 text-sm">
         <div>
-          <dt className="text-xs text-muted-foreground">Current price</dt>
+          <dt className="text-xs text-muted-foreground">Latest price</dt>
           <dd className="font-semibold">{row.currentCents === null ? "No price yet" : formatCents(row.currentCents, row.currency)}</dd>
           {row.reductionPercent !== null && <dd className="text-xs font-medium text-deal">{row.reductionPercent}% lower</dd>}
           {row.isSimulated && <dd className="text-xs text-sim">Demo simulation</dd>}
         </div>
         <div>
-          <dt className="text-xs text-muted-foreground">Your target</dt>
+          <dt className="text-xs text-muted-foreground">My ideal price</dt>
           <dd className="font-semibold">{formatCents(row.targetCents, row.currency)}</dd>
           <dd className="text-xs text-muted-foreground">
-            {row.toTargetCents === null ? "" : row.toTargetCents <= 0 ? "At or below target" : `${formatCents(row.toTargetCents, row.currency)} to go`}
+            {row.toTargetCents === null ? "" : row.toTargetCents <= 0 ? "At or below your ideal price" : `${formatCents(row.toTargetCents, row.currency)} to go`}
           </dd>
         </div>
       </dl>
@@ -112,14 +112,14 @@ function MobileCard({ row, actions }: { row: IntelligenceRow; actions: RowAction
       </p>
       {editing && (
         <form onSubmit={submit} className="flex gap-2">
-          <label htmlFor={`target-${row.id}`} className="sr-only">New target price</label>
+          <label htmlFor={`target-${row.id}`} className="sr-only">New ideal price</label>
           <input id={`target-${row.id}`} inputMode="decimal" autoFocus value={value} onChange={(e) => setValue(e.target.value)} className="tnum h-10 min-w-0 flex-1 rounded-lg border border-input bg-background px-3 text-base" />
           <Button type="submit" disabled={busy} className="h-10">{busy ? "Saving..." : "Save"}</Button>
           <Button type="button" variant="ghost" className="h-10" onClick={() => setEditing(false)}>Cancel</Button>
         </form>
       )}
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-        {!bought && !editing && <button type="button" className="min-h-9 font-medium text-primary" onClick={() => setEditing(true)}>Edit target</button>}
+        {!bought && !editing && <button type="button" className="min-h-9 font-medium text-primary" onClick={() => setEditing(true)}>Change my ideal price</button>}
         {row.domain && row.source === "channel3" && <a href={retailerHref(row)} target="_blank" rel="noopener noreferrer nofollow sponsored" className="inline-flex min-h-9 items-center text-primary">Retailer</a>}
         {!bought && <button type="button" disabled={busy} className="min-h-9 text-primary" onClick={() => actions.togglePause(row)}>{row.trackedStatus === "paused" ? "Resume" : "Pause"}</button>}
         {!bought && <button type="button" disabled={busy} className="min-h-9 text-muted-foreground" onClick={() => actions.remove(row)}>Remove</button>}
@@ -168,23 +168,23 @@ export function PriceIntelligenceView({ rows, activity }: { rows: IntelligenceRo
     busyId,
     async saveTarget(row, dollars) {
       if (!Number.isFinite(dollars) || dollars <= 0) {
-        setMessage({ text: "Enter a target price above zero.", kind: "error" });
+        setMessage({ text: "Enter an ideal price above zero.", kind: "error" });
         return false;
       }
       const cents = Math.round(dollars * 100);
       if (cents > row.maxCents) {
-        setMessage({ text: `That's above your ${formatCents(row.maxCents, row.currency)} maximum total. Open the product to raise your maximum first.`, kind: "error" });
+        setMessage({ text: `That's above your ${formatCents(row.maxCents, row.currency)} limit. Open the item to raise the most you'd pay first.`, kind: "error" });
         return false;
       }
       setBusyId(row.id);
-      setMessage({ text: "Saving your target...", kind: "saving" });
+      setMessage({ text: "Saving your ideal price...", kind: "saving" });
       try {
         await api(`/api/tracking/${row.id}`, { method: "PATCH", body: { targetPriceCents: cents } });
-        setMessage({ text: `Saved. Your target for ${row.title} is now ${formatCents(cents, row.currency)}.`, kind: "ok" });
+        setMessage({ text: `Saved. Your ideal price for ${row.title} is now ${formatCents(cents, row.currency)}.`, kind: "ok" });
         router.refresh();
         return true;
       } catch (e) {
-        setMessage({ text: `${errorMessage(e)} Your previous target is unchanged.`, kind: "error" });
+        setMessage({ text: `${errorMessage(e)} Your previous ideal price is unchanged.`, kind: "error" });
         return false;
       } finally {
         setBusyId(null);
@@ -204,11 +204,11 @@ export function PriceIntelligenceView({ rows, activity }: { rows: IntelligenceRo
       }
     },
     async remove(row) {
-      if (!window.confirm(`Stop tracking ${row.title}? Its price history won't appear here any more.`)) return;
+      if (!window.confirm(`Stop watching ${row.title}? The record of its price changes won't appear here any more.`)) return;
       setBusyId(row.id);
       try {
         await api(`/api/tracking/${row.id}`, { method: "DELETE" });
-        setMessage({ text: `Removed ${row.title} from your watchlist.`, kind: "ok" });
+        setMessage({ text: `Stopped watching ${row.title}.`, kind: "ok" });
         router.refresh();
       } catch (e) {
         setMessage({ text: errorMessage(e), kind: "error" });
@@ -240,8 +240,8 @@ export function PriceIntelligenceView({ rows, activity }: { rows: IntelligenceRo
   if (rows.length === 0) {
     return (
       <div className="grid justify-items-center gap-2 rounded-2xl border border-dashed p-10 text-center">
-        <p className="font-medium">No tracked products yet</p>
-        <p className="max-w-sm text-sm text-muted-foreground">Find something you like and set the price you&apos;d pay. Your products and their prices will appear here.</p>
+        <p className="font-medium">No items being watched yet</p>
+        <p className="max-w-sm text-sm text-muted-foreground">Find something you like and set your ideal price. Your items and their prices will appear here.</p>
         <Link href="/dashboard" className="mt-1 text-sm font-medium text-primary hover:underline">Start shopping</Link>
       </div>
     );
@@ -280,7 +280,7 @@ export function PriceIntelligenceView({ rows, activity }: { rows: IntelligenceRo
             <p>{answer.text}</p>
             <p className="flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground">
               From your own price records.{answer.basic ? " Basic mode: understood without AI." : ""}
-              <button type="button" className="font-medium text-primary hover:underline" onClick={() => { setAnswer(null); setQuestion(""); }}>Show all products</button>
+              <button type="button" className="font-medium text-primary hover:underline" onClick={() => { setAnswer(null); setQuestion(""); }}>Show all items</button>
             </p>
           </div>
         )}
@@ -326,16 +326,16 @@ export function PriceIntelligenceView({ rows, activity }: { rows: IntelligenceRo
       ) : (
         <div className="grid gap-8">
           {searchedOnPhone.length === 0 ? (
-            <p className="rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">No products match this view.</p>
+            <p className="rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">No items match this view.</p>
           ) : (
             <ul className="grid gap-3">
               {searchedOnPhone.slice(0, 40).map((r) => <MobileCard key={`${r.id}:${r.targetCents}`} row={r} actions={actions} />)}
             </ul>
           )}
-          <section aria-label="Deal activity" className="grid gap-3">
-            <h2 className="text-xl font-semibold">Deal activity</h2>
+          <section aria-label="Price updates" className="grid gap-3">
+            <h2 className="text-xl font-semibold">Price updates</h2>
             {activity.length === 0 ? (
-              <p className="rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">Nothing yet. Price changes and deals will appear here.</p>
+              <p className="rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">Nothing yet. Price changes will appear here.</p>
             ) : (
               <ul className="grid gap-2">
                 {activity.slice(0, 15).map((a) => (

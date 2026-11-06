@@ -1,6 +1,6 @@
 # PriceDrop
 
-**Find it. Track it. Get it for less.** Browse by category or describe what you want. PriceDrop finds products, watches prices, checks offers against your rules with deterministic code, explains the verdict, and prepares a PayPal **sandbox** checkout that only you can approve. You can also buy at the current price whenever you like.
+**Find what you love. Let PriceDrop help you get it for less.** Tell the AI shopping assistant what you need, or browse by category. PriceDrop finds products, watches prices, checks offers against your rules with deterministic code, explains the verdict, and prepares a PayPal **sandbox** checkout that only you can approve. You can also buy at the current price whenever you like.
 
 Sandbox only: no real money moves and no retailer ships an item. Runs entirely on free tiers.
 

@@ -48,7 +48,7 @@ export function parseQuestionFallback(question: string): PriceQuery {
     if (/\bwhich\b.*\bhas\b|\bwhat\b.*\bhas\b/.test(q)) out.limit = 1;
   } else if (/clos(e|est)|nearest|almost/.test(q)) {
     out.sort = "closest_to_target";
-  } else if (/(reached|hit|met|below my).*target|target.*(reached|hit|met)/.test(q)) {
+  } else if (/\b(reached|hit|met|at|below)\b.*\b(target|ideal)\b|\b(target|ideal)\b.*\b(reached|hit|met)\b|worth buying/.test(q)) {
     out.status = "target_reached";
   } else if (/keep watching|still watching|wait|hold off/.test(q)) {
     out.status = "watching";
@@ -58,7 +58,7 @@ export function parseQuestionFallback(question: string): PriceQuery {
   } else if (/drop|fell|cheaper|reduc/.test(q)) {
     out.status = "price_dropped";
     out.sort = "biggest_drop";
-  } else if (/cheapest|lowest/.test(q)) {
+  } else if (/cheapest|lowest|best price/.test(q)) {
     out.sort = "lowest_price";
   } else if (/most expensive|highest/.test(q)) {
     out.sort = "highest_price";
@@ -114,30 +114,30 @@ const f = (c: number | null, cur: string) => (c === null ? "no price yet" : form
 /** The grounded answer. Every figure comes from the rows. */
 export function answerFrom(q: PriceQuery, results: IntelligenceRow[], totalTracked: number, note: string | null): string {
   const prefix = note ? `${note} ` : "";
-  if (totalTracked === 0) return "You aren't tracking anything yet, so there's nothing to compare.";
+  if (totalTracked === 0) return "You aren't watching any items yet, so there's nothing to compare.";
   if (results.length === 0) {
-    if (q.status === "target_reached") return `${prefix}None of your products have reached their target yet.`;
-    if (q.status === "price_dropped") return `${prefix}We haven't recorded a price drop on any of your products.`;
-    if (q.staleOnly) return `${prefix}Everything you track has been checked recently.`;
-    return `${prefix}None of your products match that.`;
+    if (q.status === "target_reached") return `${prefix}None of your items have reached your ideal price yet.`;
+    if (q.status === "price_dropped") return `${prefix}We haven't recorded a price drop on any of your items.`;
+    if (q.staleOnly) return `${prefix}Everything you're watching has been checked recently.`;
+    return `${prefix}None of your items match that.`;
   }
   const top = results[0]!;
   const one = results.length === 1;
-  const count = one ? "1 product" : `${results.length} products`;
+  const count = one ? "1 item" : `${results.length} items`;
   if (q.sort === "biggest_drop" && top.reductionCents !== null) {
     return `${prefix}${top.title} has dropped the most: down ${top.reductionPercent}% from ${f(top.previousCents, top.currency)} to ${f(top.currentCents, top.currency)} at ${top.domain}.`;
   }
   if (q.status === "target_reached") {
-    return `${prefix}${count} reached your target. The first is ${top.title} at ${f(top.currentCents, top.currency)}, against your ${f(top.targetCents, top.currency)} target.`;
+    return `${prefix}${count} reached your ideal price. The first is ${top.title} at ${f(top.currentCents, top.currency)}, against your ideal price of ${f(top.targetCents, top.currency)}.`;
   }
   if (q.sort === "closest_to_target" && top.toTargetCents !== null) {
     const gap = top.toTargetCents <= 0
-      ? `already at or below your ${f(top.targetCents, top.currency)} target`
-      : `${f(top.toTargetCents, top.currency)} away from your ${f(top.targetCents, top.currency)} target`;
+      ? `already at or below your ideal price of ${f(top.targetCents, top.currency)}`
+      : `${f(top.toTargetCents, top.currency)} away from your ideal price of ${f(top.targetCents, top.currency)}`;
     return `${prefix}${top.title} is closest, ${gap}. It's ${f(top.currentCents, top.currency)} now.`;
   }
   if (q.staleOnly) return `${prefix}${count} ${one ? "hasn't" : "haven't"} had a recent successful check, so ${one ? "its price" : "their prices"} may be out of date.`;
-  if (q.status === "watching") return `${prefix}${count} ${one ? "is" : "are"} still above target, so ${one ? "it's" : "they're"} worth watching. ${top.title} is ${f(top.currentCents, top.currency)} now.`;
+  if (q.status === "watching") return `${prefix}${count} ${one ? "is" : "are"} still above your ideal price, so ${one ? "it's" : "they're"} worth watching. ${top.title} is ${f(top.currentCents, top.currency)} now.`;
   if (q.belowCents !== null) return `${prefix}${count} ${one ? "matches" : "match"}. The first is ${top.title} at ${f(top.currentCents, top.currency)}.`;
   return `${prefix}${count} ${one ? "matches" : "match"}. The first is ${top.title} at ${f(top.currentCents, top.currency)}.`;
 }

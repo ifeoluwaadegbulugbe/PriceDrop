@@ -16,6 +16,8 @@ export interface Channel3Gateway {
   search(opts: SearchOptions): Promise<ProductCard[]>;
   /** GET /v1/products/{id}. Free. Used for all monitoring. */
   retrieve(id: string, currency?: string): Promise<ProductCard>;
+  /** Costs 1 credit. Call only through the budget guard in lib/catalogue. */
+  similar(id: string, opts: { limit?: number; currency?: string }): Promise<ProductCard[]>;
 }
 
 type Currency = NonNullable<Parameters<Channel3["products"]["retrieve"]>[0]["currency"]>;
@@ -51,6 +53,13 @@ export function createChannel3Gateway(apiKey: string): Channel3Gateway {
         options,
       );
       return normalizeProduct(product as RawProduct);
+    },
+    async similar(id, { limit = 12, currency }) {
+      const page = await client.products.findSimilar(
+        { product_id: id, limit, ...(currency ? { config: { currency: currency as Currency } } : {}) },
+        options,
+      );
+      return page.data.map((p) => normalizeProduct(p as RawProduct));
     },
   };
 }

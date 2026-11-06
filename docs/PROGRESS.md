@@ -50,7 +50,17 @@ Two setup problems came first, both outside the code:
 
 ## Scheduler on real infrastructure (2026-11-06)
 
-A manual run of the workflow reached the deployed app: `{"checked":3,"ok":3,"failed":0,"observationsWritten":5,...}`. The Supabase step returned 401 because it read a table that logged-out access is blocked from, which is the intended rule. It now calls the auth health endpoint, which returned 200 when tested against the real project. The changed workflow hasn't run on GitHub yet. Whether the health call alone counts as activity for Supabase's pause rule isn't confirmed; the monitor's database queries are the main keep-alive.
+A manual run of the workflow reached the deployed app: `{"checked":3,"ok":3,"failed":0,"observationsWritten":5,...}`. The Supabase step returned 401 because it read a table that logged-out access is blocked from, which is the intended rule. It now calls the auth health endpoint, which returned 200 when tested against the real project. The changed workflow has since passed on GitHub. Scheduled runs arrive far less often than the 30-minute schedule: GitHub's API showed 2 scheduled runs, about 6 hours apart, so the app's wording now says checks can run hours late. Whether the health call alone counts as activity for Supabase's pause rule isn't confirmed; the monitor's database queries are the main keep-alive.
+
+## AI shopping agent and consumer experience (2026-11-06)
+
+Plan: `docs/PLAN-AGENT.md`. No database migration was needed.
+
+Built: a conversational assistant at `/assistant` and on Home; deal checks, alternatives, comparison and questions about saved items; `/categories`, `/saved`, `/price-drops`, `/compare`; a new four-step introduction; a getting-started checklist worked out from real records; new navigation; consumer wording throughout. AG Grid stays at `/price-intelligence`, titled Price details. `/watchlist` redirects to `/saved`.
+
+Checked locally against the emulator and the Demo catalogue: 250 tests, lint, types, the bundle check, the RLS script and the HTTP security script, plus a browser walkthrough at 375px and 1280px: sign-up, introduction, the laptop and gift follow-up questions, budget search, relaxing a budget, deal check, alternatives, comparing, saving, setting an ideal price, a simulated drop, Saved items, Price drops, Price details, and the checklist reaching 6 of 6 and being dismissed.
+
+Not checked: anything on the deployed site, and any new Channel3 call. The similar-products call and the specification and rating fields come from the SDK's types, with no real response seen. See `docs/UNVERIFIED.md`.
 
 ## What is real, what is emulated
 

@@ -41,7 +41,7 @@ Never set `ALLOW_LIVE_PAYPAL`.
 
 ## 5. GitHub Actions scheduler
 Repo > Settings > Secrets and variables > Actions. Add `APP_URL`, `CRON_SECRET`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`.
-Actions > Monitor prices > Run workflow, to test. It runs about every 30 minutes, best effort, and also pings Supabase so the free project doesn't pause.
+Actions > Monitor prices > Run workflow, to test. It's scheduled every 30 minutes, but GitHub can run it hours late (about 6 hours apart when measured on 2026-11-06), and also pings Supabase so the free project doesn't pause.
 
 ## 6. Check the deployment
 ```bash

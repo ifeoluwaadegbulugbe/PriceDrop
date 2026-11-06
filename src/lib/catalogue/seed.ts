@@ -37,7 +37,13 @@ export function seedCategory(id: string): string | null {
   return SEED.find((s) => s.id === id)?.category ?? null;
 }
 
-const STOP = new Set(["a", "an", "the", "for", "with", "and", "of", "new", "pair"]);
+/** Other demo products in the same category. */
+export function seedSimilar(id: string): ProductCard[] {
+  const category = seedCategory(id);
+  return category ? SEED.filter((s) => s.category === category && s.id !== id).map(toCard) : [];
+}
+
+const STOP = new Set(["a", "an", "the", "for", "with", "and", "of", "new", "pair", "my", "some"]);
 
 export function searchSeed(query: string): ProductCard[] {
   const words = query.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w && !STOP.has(w));

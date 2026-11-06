@@ -43,6 +43,15 @@ Any other unknown (stock, variant) still gives `insufficient_info`. To change th
 - Long-term storage of price observations: the caching guide discourages long-lived caching of full product data. Observations are timestamped history and are never shown as current. Not explicitly addressed by their docs.
 - `products.image_url` is stored as display metadata, refreshed only when tracking starts, and may go stale. Docs: don't assume image URLs are permanent.
 
+## AI shopping agent (2026-11-06)
+
+- `findSimilar` was written from the SDK's types and tested with a fake. It has never run against Channel3, because the owner withdrew the local key. If it fails on the live site, the assistant says it couldn't find alternatives and nothing else breaks. Each call costs 1 credit, through the same monthly budget guard.
+- `key_features` and `ratings` are read from SDK types too. The Demo catalogue has neither, so specifications and ratings have only been seen in tests.
+- The assistant's replies are written by code. With `LLM_ENABLED=true`, Gemini only helps read the request, through the existing validated schema. That path wasn't run, because there's no Gemini key.
+- Saved items with only a heart have no ideal price, so the monitor doesn't check them. The Saved items page says so.
+- Price updates appear in the app only. There's no email or browser notification, so the app doesn't offer them.
+- "My savings" isn't built. Nothing records what a shopper would otherwise have paid, so any figure would be invented.
+
 ## PayPal (real sandbox capture confirmed 2026-11-06; webhooks and declines still only against the local fake)
 Confirmed in `orders/v2/schema.json`: `NO_SHIPPING`, capture statuses `COMPLETED, DECLINED, PARTIALLY_REFUNDED, PENDING, REFUNDED, FAILED`, capture path `purchase_units[].payments.captures[]`, `payer-action` link, order examples `CREATED, APPROVED, PAYER_ACTION_REQUIRED, COMPLETED`.
 

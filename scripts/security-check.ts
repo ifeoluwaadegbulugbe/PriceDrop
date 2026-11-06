@@ -111,12 +111,14 @@ async function main() {
     ["DELETE", "/api/saved", { source: "seed", externalId: "seed-sony-wh-ch520" }],
     ["POST", "/api/intelligence/ask", { question: "what dropped most" }],
     ["GET", `/api/tracking/${trackedId}/retailer?domain=x`],
+    ["POST", "/api/assistant/chat", { message: "find headphones" }],
+    ["POST", "/api/checklist", { action: "dismiss" }],
   ];
   for (const [m, p, body] of authed) {
     const r = await call(m, p, { body });
     check(`no session: ${m} ${p.split("?")[0]!.replace(trackedId, ":id").replace(alertId, ":id")} is 401`, r.status === 401, String(r.status));
   }
-  for (const page of ["/dashboard", "/purchases", `/deals/${alertId}`, `/products/${trackedId}`, "/settings", "/watchlist", "/price-intelligence", "/categories/electronics", "/shop/seed/seed-sony-wh-ch520"]) {
+  for (const page of ["/dashboard", "/purchases", `/deals/${alertId}`, `/products/${trackedId}`, "/settings", "/watchlist", "/saved", "/compare", "/price-drops", "/assistant", "/categories", "/price-intelligence", "/categories/electronics", "/shop/seed/seed-sony-wh-ch520"]) {
     const r = await call("GET", page);
     check(`no session: page ${page.split("/")[1]} redirects to login`, r.status === 307 && (r.headers.get("location") ?? "").includes("/login"), String(r.status));
   }

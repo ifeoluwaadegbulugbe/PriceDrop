@@ -16,11 +16,11 @@ export type ExplainInput = {
 
 export const CHECK_LABELS: Record<CheckId, string> = {
   price_valid: "Price data is valid",
-  currency: "Currency matches your rules",
-  target_price: "Price is at or below your target",
-  max_total: "Total is within your maximum",
-  domain: "Retailer is allowed",
-  variant: "Variant is allowed",
+  currency: "Currency matches",
+  target_price: "Price is at or below your ideal price",
+  max_total: "Total is within the most you'd pay",
+  domain: "Retailer is one you chose",
+  variant: "Option is one you chose",
   in_stock: "In stock",
 };
 export const UNKNOWN_LABELS: Record<UnknownId, string> = {
@@ -34,7 +34,7 @@ export function templateExplanation(i: ExplainInput): string {
   const e = i.evaluation;
   const title = sanitizeUntrusted(i.title);
   const parts: string[] = [
-    `${title} is ${f(i.priceCents)} at ${sanitizeUntrusted(i.domain, 80)}, against your target of ${f(i.targetPriceCents)}.`,
+    `${title} is ${f(i.priceCents)} at ${sanitizeUntrusted(i.domain, 80)}, against your ideal price of ${f(i.targetPriceCents)}.`,
   ];
   if (i.previousPriceCents === null) {
     parts.push("This is the first price we've observed here, so we can't call it a drop.");
@@ -44,13 +44,13 @@ export function templateExplanation(i: ExplainInput): string {
     parts.push(`We last observed ${f(i.previousPriceCents)}, so this isn't a drop.`);
   }
   if (i.shippingCents === null) {
-    parts.push(`Shipping isn't stated, so we can't confirm the total against your ${f(i.maxTotalCents)} maximum.`);
+    parts.push(`Shipping isn't stated, so we can't confirm the total against the ${f(i.maxTotalCents)} you'd pay at most.`);
   } else {
-    parts.push(`With ${f(i.shippingCents)} shipping the total is ${f(i.priceCents + i.shippingCents)}, against your ${f(i.maxTotalCents)} maximum.`);
+    parts.push(`With ${f(i.shippingCents)} shipping the total is ${f(i.priceCents + i.shippingCents)}, against the ${f(i.maxTotalCents)} you'd pay at most.`);
   }
-  if (e.decision === "qualifies") parts.push("It meets your rules. Nothing is bought until you approve it at PayPal.");
-  else if (e.decision === "insufficient_info") parts.push("We're missing information needed to confirm this meets your rules.");
-  else parts.push(`It doesn't meet your rules: ${e.failed.map((c) => CHECK_LABELS[c].toLowerCase()).join("; ")} failed.`);
+  if (e.decision === "qualifies") parts.push("It matches what you asked for. Nothing is bought until you approve it at PayPal.");
+  else if (e.decision === "insufficient_info") parts.push("We're missing information needed to confirm this matches what you asked for.");
+  else parts.push(`It doesn't match what you asked for: ${e.failed.map((c) => CHECK_LABELS[c].toLowerCase()).join("; ")} failed.`);
   return parts.join(" ");
 }
 

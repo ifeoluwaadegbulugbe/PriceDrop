@@ -18,7 +18,7 @@ export default async function SettingsPage() {
   const status = [
     { label: "Product data", value: env.CHANNEL3_API_KEY ? "Channel3 live" : "Demo catalogue only" },
     { label: "AI search", value: env.LLM_ENABLED && env.GEMINI_API_KEY ? "On, with a daily cap" : "Basic mode" },
-    { label: "Automatic checks", value: "About every 30 minutes (best effort)" },
+    { label: "Price checks", value: "Scheduled every 30 minutes, can run hours late" },
   ];
   return (
     <div className="mx-auto grid max-w-2xl gap-6">
@@ -36,11 +36,13 @@ export default async function SettingsPage() {
         categories={tops.map((c) => ({ slug: c.slug, name: c.name, description: c.description }))}
         images={images}
       />
-      <nav aria-label="More" className="flex flex-wrap gap-x-5 gap-y-1 text-sm md:hidden">
+      <nav aria-label="More" className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
         <Link href="/purchases" className="font-medium text-primary hover:underline">Purchases</Link>
+        <Link href="/price-intelligence" className="font-medium text-primary hover:underline">Price details</Link>
+        <Link href="/onboarding" className="font-medium text-primary hover:underline">See the introduction again</Link>
       </nav>
-      <section aria-label="How this deployment runs" className="grid gap-2 rounded-2xl border bg-card p-5">
-        <h2 className="text-lg font-semibold">How this deployment runs</h2>
+      <section aria-label="How this version runs" className="grid gap-2 rounded-2xl border bg-card p-5">
+        <h2 className="text-lg font-semibold">How this version runs</h2>
         <dl className="grid gap-2 text-sm">
           {status.map((s) => (
             <div key={s.label} className="flex justify-between gap-3">

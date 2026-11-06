@@ -40,7 +40,7 @@ export function PriceChart({ observations, targetCents, currency }: { observatio
                 return [`${money(Number(value))}${o ? ` (${SOURCE_LABEL[o.source]})` : ""}`, String(name)];
               }}
             />
-            <ReferenceLine y={targetCents} stroke="var(--deal)" strokeDasharray="5 4" label={{ value: "Your target", position: "insideTopRight", fill: "var(--deal)", fontSize: 12 }} />
+            <ReferenceLine y={targetCents} stroke="var(--deal)" strokeDasharray="5 4" label={{ value: "My ideal price", position: "insideTopRight", fill: "var(--deal)", fontSize: 12 }} />
             {domains.map((d, i) => (
               <Line
                 key={d}

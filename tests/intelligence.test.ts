@@ -93,7 +93,7 @@ describe("buildActivity", () => {
   it("reports getting close from real figures", () => {
     const events = buildActivity(buildRows([tracked()], products, [obs({ price_cents: 8100 })], NOW), [], [], products);
     expect(events.map((e) => e.kind)).toEqual(["close_to_target"]);
-    expect(events[0]!.description).toContain("$1.00 away from your $80.00 target");
+    expect(events[0]!.description).toContain("$1.00 away from your $80.00 ideal price");
   });
   it("leaves out deals on products the shopper removed", () => {
     const alert = { id: "x", tracked_product_id: "gone", user_id: "u", observation_id: 1, domain: "d", price_cents: 1, previous_price_cents: null, evaluation: {} as never, explanation: "", explanation_source: "template" as const, status: "open" as const, created_at: ago(1) };
@@ -141,8 +141,8 @@ describe("price questions", () => {
   });
   it("answers no-result questions honestly", () => {
     const q = parseQuestionFallback("Have any reached their target?");
-    expect(answerFrom(q, [], 3, null)).toMatch(/None of your products have reached/);
-    expect(answerFrom(q, [], 0, null)).toMatch(/aren't tracking anything/);
+    expect(answerFrom(q, [], 3, null)).toMatch(/None of your items have reached/);
+    expect(answerFrom(q, [], 0, null)).toMatch(/aren't watching any items/);
   });
   it("filters below a price, and a missing price never matches", () => {
     const withNone = [...rows, ...buildRows([tracked({ id: "d" })], products, [], NOW)];
@@ -161,7 +161,7 @@ describe("price questions", () => {
   });
   it("uses singular wording for one result", () => {
     const q = { ...parseQuestionFallback("x"), belowCents: 100000, belowCurrency: "USD" };
-    expect(answerFrom(q, rows.slice(0, 1), 3, null)).toMatch(/^1 product matches/);
+    expect(answerFrom(q, rows.slice(0, 1), 3, null)).toMatch(/^1 item matches/);
   });
   it("sorts missing prices last in both directions", () => {
     const withNone = [...rows, ...buildRows([tracked({ id: "d" })], products, [], NOW)];

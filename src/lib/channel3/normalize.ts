@@ -18,6 +18,9 @@ export type ProductCard = {
   brand: string | null;
   imageUrl: string | null;
   offers: NormalizedOffer[];
+  /** Only when the catalogue supplies them. Never filled in or guessed. */
+  features?: string[];
+  rating?: { value: number; count: number } | null;
 };
 
 /**
@@ -38,6 +41,8 @@ export type RawProduct = {
       }[]
     | null;
   variants?: { selected?: { label?: string | null }[] | null } | null;
+  key_features?: (string | null)[] | null;
+  ratings?: { value?: number | null; count?: number | null } | null;
 };
 
 function safeHttpUrl(url: unknown): string | null {
@@ -84,5 +89,10 @@ export function normalizeProduct(p: RawProduct): ProductCard {
     brand: p.brands?.[0]?.name ?? null,
     imageUrl: safeHttpUrl(main?.cleaned_url) ?? safeHttpUrl(main?.url),
     offers,
+    features: (p.key_features ?? []).filter((f): f is string => typeof f === "string" && f.trim().length > 0).slice(0, 8),
+    rating:
+      typeof p.ratings?.value === "number" && typeof p.ratings?.count === "number" && p.ratings.count > 0
+        ? { value: p.ratings.value, count: p.ratings.count }
+        : null,
   };
 }

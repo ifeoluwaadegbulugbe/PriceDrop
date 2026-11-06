@@ -1,13 +1,14 @@
 "use client";
 
 import { cn } from "cn";
-import { BellRing, X } from "lucide-react";
+import { BellRing, Sparkles, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type KeyboardEvent } from "react";
 import { SelectableTile, type TileCategory } from "@/components/category-tile";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { api } from "@/lib/api/client";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 
 export const SUGGESTED_BRANDS = ["Apple", "Samsung", "Sony", "Nike", "Adidas", "HP", "Dell", "LG", "L'Oréal", "Zara"];
@@ -79,6 +80,8 @@ export function PrefToggles({ prefs, onChange }: { prefs: string[]; onChange: (p
 
 const STEPS = 4;
 
+const EXAMPLES = ["Find me a good phone under $300", "Compare these two laptops", "Is there a cheaper alternative?"];
+
 export function OnboardingFlow({
   userId,
   categories,
@@ -116,9 +119,7 @@ export function OnboardingFlow({
     }
   }, [draft]);
 
-  const patch = (p: Partial<Draft>) => setDraft((d) => ({ ...d, ...p }));
-
-  async function finish() {
+  async function finish(confirmUpdates: boolean) {
     setBusy(true);
     setError(null);
     const { error: err } = await createBrowserSupabase()
@@ -136,6 +137,8 @@ export function OnboardingFlow({
       setBusy(false);
       return;
     }
+    // Choosing updates on the last screen counts for the getting-started list. It's fine if this one call fails.
+    if (confirmUpdates && draft.notify) await api("/api/checklist", { method: "POST", body: { action: "enable_updates" } }).catch(() => undefined);
     try {
       localStorage.removeItem(DRAFT_KEY);
     } catch {
@@ -145,33 +148,32 @@ export function OnboardingFlow({
     router.refresh();
   }
 
-  const next = () => (step === STEPS - 1 ? void finish() : setStep(step + 1));
+  const next = () => (step === STEPS - 1 ? void finish(true) : setStep(step + 1));
 
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-8rem)] max-w-xl flex-col gap-5">
       <div className="flex items-center justify-between gap-3">
-        <div className="flex flex-1 gap-1.5" role="progressbar" aria-valuemin={1} aria-valuemax={STEPS} aria-valuenow={step + 1} aria-label="Onboarding progress">
+        <div className="flex flex-1 gap-1.5" role="progressbar" aria-valuemin={1} aria-valuemax={STEPS} aria-valuenow={step + 1} aria-label="Introduction progress">
           {Array.from({ length: STEPS }, (_, i) => (
             <span key={i} className={cn("h-1.5 flex-1 rounded-full", i <= step ? "bg-brand" : "bg-secondary")} />
           ))}
         </div>
-        {step > 0 && (
-          <button type="button" onClick={next} disabled={busy} className="min-h-10 px-2 text-sm text-muted-foreground hover:text-foreground">
-            Skip
-          </button>
-        )}
+        <button type="button" onClick={() => void finish(false)} disabled={busy} className="min-h-10 px-2 text-sm text-muted-foreground hover:text-foreground">
+          Skip
+        </button>
       </div>
 
       {step === 0 && (
         <section className="grid flex-1 content-start gap-5">
+          <div className="flex size-16 items-center justify-center rounded-2xl bg-brand-soft"><Sparkles aria-hidden className="size-8 text-brand" /></div>
+          <div>
+            <h1 className="text-4xl leading-tight font-semibold">Meet your personal AI shopping assistant.</h1>
+            <p className="mt-3 text-base text-muted-foreground">Find products, compare options and get help knowing when it&apos;s a good time to buy.</p>
+          </div>
           <div className="grid grid-cols-2 gap-2.5" aria-hidden>
             {categories.slice(0, 4).map((c) => (
               <SelectableTile key={c.slug} category={c} imageUrl={images[c.slug] ?? null} selected={false} onToggle={() => setStep(1)} />
             ))}
-          </div>
-          <div>
-            <h1 className="text-4xl leading-tight font-semibold">Everything you want. At a price you love.</h1>
-            <p className="mt-3 text-base text-muted-foreground">Discover products, keep an eye on their prices and know when it&apos;s a good time to buy.</p>
           </div>
         </section>
       )}
@@ -180,7 +182,7 @@ export function OnboardingFlow({
         <section className="grid flex-1 content-start gap-4">
           <div>
             <h1 className="text-3xl font-semibold">What do you usually shop for?</h1>
-            <p className="mt-2 text-sm text-muted-foreground">Choose the categories you&apos;re most interested in. We&apos;ll use them to personalise your shopping experience.</p>
+            <p className="mt-2 text-sm text-muted-foreground">We&apos;ll use your interests to help show you products you&apos;ll love.</p>
           </div>
           <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
             {categories.map((c) => (
@@ -199,14 +201,16 @@ export function OnboardingFlow({
       {step === 2 && (
         <section className="grid flex-1 content-start gap-5">
           <div>
-            <h1 className="text-3xl font-semibold">Let&apos;s make shopping feel more personal.</h1>
-            <p className="mt-2 text-sm text-muted-foreground">All optional. You can change these any time in your profile.</p>
+            <h1 className="text-3xl font-semibold">Just tell PriceDrop what you need.</h1>
+            <p className="mt-2 text-sm text-muted-foreground">No filters to learn. Ask the way you&apos;d ask a friend who loves shopping.</p>
           </div>
-          <div className="grid gap-2">
-            <h2 className="text-sm font-medium">Favourite brands</h2>
-            <BrandPicker brands={draft.brands} onChange={(brands) => patch({ brands })} />
-          </div>
-          <PrefToggles prefs={draft.prefs} onChange={(prefs) => patch({ prefs })} />
+          <ul className="grid gap-2.5">
+            {EXAMPLES.map((e) => (
+              <li key={e} className="flex justify-end">
+                <p className="max-w-[85%] rounded-2xl rounded-br-md bg-primary px-4 py-2.5 text-primary-foreground">{e}</p>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 
@@ -214,17 +218,17 @@ export function OnboardingFlow({
         <section className="grid flex-1 content-start gap-5">
           <div className="flex size-16 items-center justify-center rounded-2xl bg-brand-soft"><BellRing aria-hidden className="size-8 text-brand" /></div>
           <div>
-            <h1 className="text-3xl font-semibold">Never miss a price drop.</h1>
-            <p className="mt-2 text-sm text-muted-foreground">We&apos;ll let you know when a product you&apos;re tracking gets cheaper or reaches your target price.</p>
+            <h1 className="text-3xl font-semibold">Never miss a price change.</h1>
+            <p className="mt-2 text-sm text-muted-foreground">Save products and choose how you&apos;d like to hear when their prices change.</p>
           </div>
           <Label className="flex items-center justify-between gap-3 rounded-2xl border bg-card p-4 font-normal">
             <span>
-              <span className="block font-medium">Alerts in PriceDrop</span>
+              <span className="block font-medium">Price updates in PriceDrop</span>
               <span className="block text-xs text-muted-foreground">They appear under the bell at the top of the app.</span>
             </span>
-            <Switch checked={draft.notify} onCheckedChange={(notify) => patch({ notify })} />
+            <Switch checked={draft.notify} onCheckedChange={(notify) => setDraft((d) => ({ ...d, notify }))} />
           </Label>
-          <p className="text-xs text-muted-foreground">We check prices about every 30 minutes, on a best-effort basis.</p>
+          <p className="text-xs text-muted-foreground">Checks are scheduled every 30 minutes but can run hours late, so updates may not be instant.</p>
         </section>
       )}
 

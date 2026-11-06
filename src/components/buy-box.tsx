@@ -41,7 +41,7 @@ export function BuyBox({
     <div className="grid gap-2">
       <div className="flex gap-2">
         {trackedId ? (
-          <Link href={`/products/${trackedId}`} className={buttonVariants({ size: "lg", className: "flex-1" })}>View tracking</Link>
+          <Link href={`/products/${trackedId}`} className={buttonVariants({ size: "lg", className: "flex-1" })}>Watching: see details</Link>
         ) : (
           <Button
             size="lg"
@@ -49,7 +49,7 @@ export function BuyBox({
             disabled={!hasOffers}
             onClick={() => setTarget({ mode: "create", source, externalId: id, title, domains, variants, suggestedTargetCents })}
           >
-            Track price
+            Watch this item
           </Button>
         )}
         <Button size="lg" variant="outline" aria-pressed={saved} onClick={toggle}>

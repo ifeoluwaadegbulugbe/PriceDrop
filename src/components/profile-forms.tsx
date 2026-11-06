@@ -96,14 +96,15 @@ export function SettingsForm({
         <BrandPicker brands={brands} onChange={setBrands} />
       </section>
 
-      <section aria-label="Preferences" className="grid gap-4 rounded-2xl border bg-card p-5">
+      <section aria-label="Shopping preferences" className="grid gap-4 rounded-2xl border bg-card p-5">
+        <h2 className="text-lg font-semibold">Shopping preferences</h2>
         <div className="grid gap-1.5">
           <Label htmlFor="display-name">Display name</Label>
           <Input id="display-name" className="h-11" maxLength={80} value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
         </div>
         <PrefToggles prefs={prefs} onChange={setPrefs} />
         <Label className="flex min-h-9 items-center justify-between gap-3 font-normal">
-          Alerts in PriceDrop
+          Price updates in PriceDrop
           <Switch checked={notify} onCheckedChange={setNotify} />
         </Label>
       </section>

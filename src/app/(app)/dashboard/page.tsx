@@ -1,21 +1,19 @@
-import { ArrowRight, TrendingDown } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { DeltaBadge, DemoCatalogueBadge, SimulationBadge, TrackedStatusBadge } from "@/components/badges";
+import { AskBar } from "@/components/ask-bar";
 import { CategoryTile } from "@/components/category-tile";
-import { DealCard } from "@/components/deal-card";
+import { GettingStarted } from "@/components/checklist";
+import { DropCard } from "@/components/drop-card";
+import { Greeting } from "@/components/greeting";
 import { FallbackBanner, GridSkeleton, ProductGrid } from "@/components/product-grid";
-import { ProductTile } from "@/components/product-tile";
-import { SearchBar } from "@/components/search-bar";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { AlertRow, CategoryRow, ObservationRow, ProductRow, ProfileRow, TrackedRow } from "@/lib/db/types";
+import { loadChecklist } from "@/lib/checklist-load";
+import type { CategoryRow, ProfileRow } from "@/lib/db/types";
 import {
   categoryImages, hydrateCards, loadCategories, pickedForYou, popularProducts, topLevel, trendingDrops, type ProductRef,
 } from "@/lib/discovery/service";
-import { shopHref, timeAgo } from "@/lib/format";
-import { liveSnapshot } from "@/lib/live";
-import { formatCents } from "@/lib/money";
 import { getDeps } from "@/lib/serverDeps";
 import { shopperState } from "@/lib/shopper";
 import { getViewer } from "@/lib/viewer";
@@ -24,6 +22,14 @@ export const metadata = { title: "Home - PriceDrop" };
 
 type Supabase = Awaited<ReturnType<typeof getViewer>>["supabase"];
 type State = { savedKeys: string[]; trackedByKey: Record<string, string> };
+
+const PROMPTS = [
+  "Find me a good phone under $300",
+  "I need a laptop for university",
+  "Find affordable skincare for my routine",
+  "Help me find a birthday gift for my sister",
+  "Which of my saved items has the best price?",
+];
 
 function Section({ title, subtitle, action, children }: { title: string; subtitle?: string; action?: React.ReactNode; children: React.ReactNode }) {
   return (
@@ -40,6 +46,10 @@ function Section({ title, subtitle, action, children }: { title: string; subtitl
   );
 }
 
+const Empty = ({ children }: { children: React.ReactNode }) => (
+  <p className="rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">{children}</p>
+);
+
 async function CategoryTiles({ tops, currency }: { tops: CategoryRow[]; currency: string }) {
   const images = await categoryImages(getDeps(), tops, currency);
   return (
@@ -55,71 +65,52 @@ async function CategoryTiles({ tops, currency }: { tops: CategoryRow[]; currency
 }
 
 async function PickedSection({ profile, all, state }: { profile: ProfileRow; all: CategoryRow[]; state: State }) {
+  const title = "Picked for you";
   if ((profile.interests ?? []).length === 0) {
     return (
-      <Section title="Picked for you">
-        <p className="rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">
+      <Section title={title}>
+        <Empty>
           Tell us what you like and we&apos;ll pick products for you.{" "}
-          <Link href="/settings" className="font-medium text-primary hover:underline">Choose your interests</Link>
-        </p>
+          <Link href="/settings" className="font-medium text-primary hover:underline">Choose what you love</Link>
+        </Empty>
       </Section>
     );
   }
   const picks = await pickedForYou(getDeps(), profile, all);
   if (picks.cards.length === 0) {
     return (
-      <Section title="Picked for you">
-        <p className="rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">
-          We don&apos;t have products to show for your interests right now. Try searching, or{" "}
+      <Section title={title}>
+        <Empty>
+          We don&apos;t have products to show for your interests right now. Try asking PriceDrop, or{" "}
           <Link href="/settings" className="font-medium text-primary hover:underline">add more interests</Link>.
-        </p>
+        </Empty>
       </Section>
     );
   }
   return (
-    <Section title="Picked for you" subtitle={`Based on your interest in ${picks.basedOn.join(", ")}`}>
+    <Section title={title} subtitle={`Products we think you'll love, based on your interest in ${picks.basedOn.join(", ")}.`}>
       {picks.source === "seed" && <FallbackBanner reason="no_api_key" />}
       <ProductGrid rail cards={picks.cards} currency={profile.currency} {...state} />
     </Section>
   );
 }
 
-async function TrendingSection() {
+async function DropsSection() {
   const drops = await trendingDrops(getDeps(), 8);
+  const title = "Prices have dropped";
   return (
-    <Section title="Verified price drops" subtitle="Prices we watched fall at the same retailer in the last 7 days">
+    <Section
+      title={title}
+      subtitle="Take another look at these products."
+      action={drops.length > 0 ? <Link href="/price-drops" className="shrink-0 text-sm font-medium text-primary hover:underline">See all</Link> : undefined}
+    >
       {drops.length === 0 ? (
-        <p className="rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">
-          No verified drops this week. We only show a drop when we recorded the higher price ourselves.
-        </p>
+        <Empty>No price drops this week. We only show a drop when we recorded the higher price ourselves.</Empty>
       ) : (
         <ul className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-2 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0 lg:grid-cols-4">
-          {drops.map((d) => {
-            return (
-              <li key={`${d.ref.source}:${d.ref.id}`} className="w-48 shrink-0 snap-start md:w-auto">
-                <Link href={shopHref(d.ref.source, d.ref.id)} className="flex h-full flex-col overflow-hidden rounded-2xl border bg-card hover:border-primary/50">
-                  <div className="relative">
-                    <ProductTile title={d.title} imageUrl={d.imageUrl} className="w-full rounded-none bg-white" />
-                    <span className="tnum absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-deal px-2 py-0.5 text-xs font-semibold text-background">
-                      <TrendingDown aria-hidden className="size-3.5" />
-                      {d.percent}% lower
-                    </span>
-                  </div>
-                  <div className="flex flex-1 flex-col gap-1 p-3">
-                    <p className="line-clamp-2 text-sm leading-snug font-medium break-words">{d.title}</p>
-                    <p className="tnum">
-                      <span className="font-display text-lg font-semibold">{formatCents(d.priceCents, d.currency)}</span>{" "}
-                      <s className="text-xs text-muted-foreground">{formatCents(d.previousCents, d.currency)}</s>
-                    </p>
-                    <p className="truncate text-xs text-muted-foreground">{d.domain}</p>
-                    <p className="text-xs text-muted-foreground">Checked {timeAgo(d.observedAt)}</p>
-                    {d.simulated && <SimulationBadge className="self-start" />}
-                    <span className="mt-auto pt-1 text-sm font-medium text-primary">Track price</span>
-                  </div>
-                </Link>
-              </li>
-            );
-          })}
+          {drops.map((d) => (
+            <li key={`${d.ref.source}:${d.ref.id}`} className="w-48 shrink-0 snap-start md:w-auto"><DropCard drop={d} /></li>
+          ))}
         </ul>
       )}
     </Section>
@@ -130,22 +121,25 @@ async function PopularSection({ profile, state }: { profile: ProfileRow; state: 
   const cards = await popularProducts(getDeps(), profile.currency);
   if (cards.length === 0) return null; // Only with real signal.
   return (
-    <Section title="Popular on PriceDrop" subtitle="Saved or tracked by several shoppers">
+    <Section title="Popular on PriceDrop" subtitle="Saved or watched by several shoppers">
       <ProductGrid rail cards={cards} currency={profile.currency} {...state} />
     </Section>
   );
 }
 
-async function RecentSection({ supabase, profile, state }: { supabase: Supabase; profile: ProfileRow; state: State }) {
-  const { data } = await supabase.from("recently_viewed").select("product_id").order("viewed_at", { ascending: false }).limit(8);
-  const ids = ((data ?? []) as { product_id: string }[]).map((r) => r.product_id);
-  if (ids.length === 0) return null;
-  const { data: products } = await supabase.from("products").select("id,source,external_id").in("id", ids);
-  const byId = new Map(((products ?? []) as { id: string; source: "channel3" | "seed"; external_id: string }[]).map((p) => [p.id, p]));
-  const refs: ProductRef[] = ids.flatMap((id) => {
+async function refsFor(supabase: Supabase, ids: string[]): Promise<ProductRef[]> {
+  if (ids.length === 0) return [];
+  const { data } = await supabase.from("products").select("id,source,external_id").in("id", ids);
+  const byId = new Map(((data ?? []) as { id: string; source: "channel3" | "seed"; external_id: string }[]).map((p) => [p.id, p]));
+  return ids.flatMap((id) => {
     const p = byId.get(id);
     return p ? [{ source: p.source, id: p.external_id }] : [];
   });
+}
+
+async function RecentSection({ supabase, profile, state }: { supabase: Supabase; profile: ProfileRow; state: State }) {
+  const { data } = await supabase.from("recently_viewed").select("product_id").order("viewed_at", { ascending: false }).limit(8);
+  const refs = await refsFor(supabase, ((data ?? []) as { product_id: string }[]).map((r) => r.product_id));
   const cards = await hydrateCards(getDeps(), refs, profile.currency);
   if (cards.length === 0) return null;
   return (
@@ -155,90 +149,21 @@ async function RecentSection({ supabase, profile, state }: { supabase: Supabase;
   );
 }
 
-async function TrackedPreview({ supabase, alerts }: { supabase: Supabase; alerts: AlertRow[] }) {
-  const { data: trackedData } = await supabase
-    .from("tracked_products")
-    .select("*")
-    .neq("status", "removed")
-    .order("created_at", { ascending: false })
-    .limit(4);
-  const tracked = (trackedData ?? []) as TrackedRow[];
-
-  const alertTrackedIds = [...new Set(alerts.slice(0, 2).map((a) => a.tracked_product_id))];
-  const { data: alertTracked } = alertTrackedIds.length
-    ? await supabase.from("tracked_products").select("*").in("id", alertTrackedIds)
-    : { data: [] };
-  const allTracked = [...tracked, ...((alertTracked ?? []) as TrackedRow[])];
-  const productIds = [...new Set(allTracked.map((t) => t.product_id))];
-  const { data: productData } = productIds.length ? await supabase.from("products").select("*").in("id", productIds) : { data: [] };
-  const products = new Map(((productData ?? []) as ProductRow[]).map((p) => [p.id, p]));
-  const trackedById = new Map(allTracked.map((t) => [t.id, t]));
-  const { data: obsData } = alerts.length
-    ? await supabase.from("price_observations").select("*").in("id", alerts.slice(0, 2).map((a) => a.observation_id))
-    : { data: [] };
-  const obsById = new Map(((obsData ?? []) as ObservationRow[]).map((o) => [o.id, o]));
-
-  const deps = getDeps();
-  const snapshots = new Map(await Promise.all(tracked.map(async (t) => {
-    const p = products.get(t.product_id);
-    if (!p || t.status === "purchased") return [t.id, null] as const;
-    return [t.id, await liveSnapshot(deps, t, p)] as const;
-  })));
-
+async function SavedPreview({ supabase, profile, state }: { supabase: Supabase; profile: ProfileRow; state: State }) {
+  const [saved, watched] = await Promise.all([
+    supabase.from("saved_products").select("product_id,created_at").order("created_at", { ascending: false }).limit(4),
+    supabase.from("tracked_products").select("product_id,created_at").neq("status", "removed").order("created_at", { ascending: false }).limit(4),
+  ]);
+  const recent = [...((saved.data ?? []) as { product_id: string; created_at: string }[]), ...((watched.data ?? []) as { product_id: string; created_at: string }[])]
+    .sort((a, b) => b.created_at.localeCompare(a.created_at));
+  const ids = [...new Set(recent.map((r) => r.product_id))].slice(0, 4);
+  const cards = await hydrateCards(getDeps(), await refsFor(supabase, ids), profile.currency);
   return (
-    <Section title="Your watchlist" action={<Link href="/watchlist" className="text-sm font-medium text-primary hover:underline">See all</Link>}>
-      {alerts.length > 0 && (
-        <ul className="grid gap-3 md:grid-cols-2">
-          {alerts.slice(0, 2).map((a) => {
-            const t = trackedById.get(a.tracked_product_id);
-            return (
-              <li key={a.id}>
-                <DealCard alert={a} tracked={t} product={t ? products.get(t.product_id) : undefined} observation={obsById.get(a.observation_id)} />
-              </li>
-            );
-          })}
-        </ul>
-      )}
-      {tracked.length === 0 ? (
-        <p className="rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">
-          Nothing tracked yet. Find something you like and tap Track price.
-        </p>
+    <Section title="Your saved items" action={cards.length > 0 ? <Link href="/saved" className="shrink-0 text-sm font-medium text-primary hover:underline">See all</Link> : undefined}>
+      {cards.length === 0 ? (
+        <Empty>Nothing saved yet. Tap the heart on anything you like and it&apos;ll wait for you here.</Empty>
       ) : (
-        <ul className="grid gap-3 md:grid-cols-2">
-          {tracked.map((t) => {
-            const p = products.get(t.product_id);
-            const s = snapshots.get(t.id);
-            const best = s?.ok ? s.best : null;
-            return (
-              <li key={t.id}>
-                <Link href={`/products/${t.id}`} className="flex gap-3 rounded-2xl border bg-card p-3 hover:bg-muted/40">
-                  <ProductTile title={p?.title ?? "Product"} imageUrl={p?.image_url ?? null} className="size-20" />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="line-clamp-2 text-sm leading-snug font-medium break-words">{p?.title ?? "Product"}</p>
-                      <TrackedStatusBadge status={t.status} />
-                    </div>
-                    {best ? (
-                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                        <span className="tnum text-lg font-semibold">{formatCents(best.priceCents, best.currency)}</span>
-                        <DeltaBadge priceCents={best.priceCents} targetCents={t.target_price_cents} currency={t.currency} />
-                        {best.observationSource === "seed" && <DemoCatalogueBadge />}
-                        {best.observationSource === "demo_simulation" && <SimulationBadge />}
-                      </div>
-                    ) : t.status === "purchased" ? (
-                      <p className="mt-1.5 text-sm text-muted-foreground">Bought in the sandbox</p>
-                    ) : (
-                      <p className="mt-1.5 text-sm text-muted-foreground">Current price unavailable right now</p>
-                    )}
-                    <p className="tnum mt-1 text-xs text-muted-foreground">
-                      Target {formatCents(t.target_price_cents, t.currency)} · Last checked {timeAgo(t.last_checked_at)}
-                    </p>
-                  </div>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        <ProductGrid rail cards={cards} currency={profile.currency} {...state} />
       )}
     </Section>
   );
@@ -257,37 +182,46 @@ export default async function Home() {
   if (!profile) redirect("/login");
 
   const deps = getDeps();
-  const [all, state, alertsRes] = await Promise.all([
+  const [all, state, checklist, waiting] = await Promise.all([
     loadCategories(deps),
     shopperState(supabase),
-    supabase.from("deal_alerts").select("*").in("status", ["open", "checkout_prepared"]).order("created_at", { ascending: false }).limit(10),
+    loadChecklist(supabase, profile),
+    supabase.from("deal_alerts").select("id", { count: "exact", head: true }).in("status", ["open", "checkout_prepared"]),
   ]);
-  const alerts = (alertsRes.data ?? []) as AlertRow[];
+  const ready = waiting.count ?? 0;
   const tops = topLevel(all);
 
   return (
     <div className="grid gap-8 sm:gap-10">
-      <h1 className="sr-only">Shop with PriceDrop</h1>
-      <SearchBar />
+      <section aria-label="Ask PriceDrop" className="grid gap-4 rounded-3xl bg-accent/70 p-5 sm:p-8">
+        <Greeting />
+        <div>
+          <h1 className="text-3xl leading-tight font-semibold sm:text-4xl">What are we shopping for today?</h1>
+          <p className="mt-2 max-w-2xl text-muted-foreground">Tell me what you need, what you love or how much you want to spend. I&apos;ll help you find it.</p>
+        </div>
+        <AskBar large suggestions={PROMPTS} />
+      </section>
 
-      {alerts.length > 0 && (
-        <Link href="/watchlist" className="flex items-center justify-between gap-3 rounded-2xl bg-deal-soft px-4 py-3 text-sm font-medium text-deal">
-          {alerts.length === 1 ? "1 deal is" : `${alerts.length} deals are`} waiting for your review
+      {checklist.visible && <GettingStarted checklist={checklist} />}
+
+      {ready > 0 && (
+        <Link href="/saved" className="flex items-center justify-between gap-3 rounded-2xl bg-deal-soft px-4 py-3 text-sm font-medium text-deal">
+          {ready === 1 ? "1 item is" : `${ready} items are`} at your ideal price
           <ArrowRight aria-hidden className="size-4 shrink-0" />
         </Link>
       )}
 
-      <Section title="Shop by category">
+      <Section title="Explore products">
         <Suspense fallback={<GridSkeleton count={8} />}>
           <CategoryTiles tops={tops} currency={profile.currency} />
         </Suspense>
       </Section>
 
       <Suspense fallback={sectionFallback}><PickedSection profile={profile} all={all} state={state} /></Suspense>
-      <Suspense fallback={sectionFallback}><TrendingSection /></Suspense>
-      <Suspense fallback={null}><PopularSection profile={profile} state={state} /></Suspense>
+      <Suspense fallback={sectionFallback}><DropsSection /></Suspense>
       <Suspense fallback={null}><RecentSection supabase={supabase} profile={profile} state={state} /></Suspense>
-      <Suspense fallback={sectionFallback}><TrackedPreview supabase={supabase} alerts={alerts} /></Suspense>
+      <Suspense fallback={sectionFallback}><SavedPreview supabase={supabase} profile={profile} state={state} /></Suspense>
+      <Suspense fallback={null}><PopularSection profile={profile} state={state} /></Suspense>
     </div>
   );
 }

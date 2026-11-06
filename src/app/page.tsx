@@ -4,9 +4,9 @@ import { Logo } from "@/components/logo";
 import { buttonVariants } from "@/components/ui/button";
 
 const STEPS = [
-  { title: "Find it", body: "Browse by category, or just describe what you want in your own words." },
-  { title: "Track it", body: "Set the price you'd pay. We check about every 30 minutes, record each price, and show you when we last looked." },
-  { title: "Get it for less", body: "When an offer meets your rules, we show you why. Nothing is paid until you approve it at PayPal." },
+  { title: "Just ask", body: "Tell PriceDrop what you need, what you love or how much you want to spend. It finds real products to choose from." },
+  { title: "Save what you love", body: "Compare your options and set your ideal price. Checks are scheduled every 30 minutes, can run late, and always show when we last looked." },
+  { title: "Get it for less", body: "When a price matches what you asked for, we show you why. Nothing is paid until you approve it at PayPal." },
 ];
 
 export default function Landing() {
@@ -23,23 +23,23 @@ export default function Landing() {
       <main className="flex-1">
         <section className="mx-auto grid max-w-6xl items-center gap-10 px-4 pt-10 pb-16 lg:grid-cols-[1.15fr_1fr] lg:pt-20">
           <div>
-            <h1 className="text-5xl leading-[1.02] font-semibold sm:text-6xl lg:text-7xl">Find it. Track it. Get it for less.</h1>
+            <h1 className="text-5xl leading-[1.04] font-semibold sm:text-6xl">Find what you love. Let PriceDrop help you get it for less.</h1>
             <p className="mt-6 max-w-xl text-lg text-muted-foreground">
-              Discover products, keep an eye on their prices and know when it&apos;s a good time to buy.
+              Your personal AI shopping assistant. Find products, compare options and get help knowing when it&apos;s a good time to buy.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="/signup" className={buttonVariants({ size: "lg", className: "h-12 px-6 text-base" })}>Get started</Link>
             </div>
           </div>
 
-          <figure aria-label="Example of a deal evaluation" className="m-0 rounded-2xl border bg-card p-5 shadow-sm">
+          <figure aria-label="Example of what PriceDrop finds" className="m-0 rounded-2xl border bg-card p-5 shadow-sm">
             <figcaption className="text-xs font-medium tracking-wide text-muted-foreground uppercase">Example</figcaption>
             <p className="mt-2 font-display text-xl font-semibold">Wireless headphones</p>
             <p className="tnum mt-3 font-display text-4xl font-semibold">$79.99</p>
-            <p className="tnum mt-1 inline-flex rounded-full bg-deal-soft px-2 py-0.5 text-xs font-medium text-deal">$10.01 below your $90.00 target</p>
+            <p className="tnum mt-1 inline-flex rounded-full bg-deal-soft px-2 py-0.5 text-xs font-medium text-deal">$10.01 below your $90.00 ideal price</p>
             <ul className="mt-4 grid gap-2 text-sm">
-              <li className="flex gap-2"><CircleCheck aria-hidden className="size-4 shrink-0 text-deal" />At or below your target</li>
-              <li className="flex gap-2"><CircleCheck aria-hidden className="size-4 shrink-0 text-deal" />Retailer is allowed</li>
+              <li className="flex gap-2"><CircleCheck aria-hidden className="size-4 shrink-0 text-deal" />At or below your ideal price</li>
+              <li className="flex gap-2"><CircleCheck aria-hidden className="size-4 shrink-0 text-deal" />Retailer is one you chose</li>
               <li className="flex gap-2"><CircleCheck aria-hidden className="size-4 shrink-0 text-deal" />In stock</li>
               <li className="flex gap-2"><CircleHelp aria-hidden className="size-4 shrink-0 text-caution" />Shipping isn&apos;t stated, so the total could be higher</li>
             </ul>

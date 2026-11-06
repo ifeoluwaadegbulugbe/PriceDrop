@@ -72,7 +72,7 @@ export default async function DealPage({ params }: { params: Promise<{ id: strin
           <dd className="text-sm font-medium">{alert.previous_price_cents === null ? "First observed at this price" : c(alert.previous_price_cents)}</dd>
         </div>
         <div>
-          <dt className="text-xs text-muted-foreground">Your target</dt>
+          <dt className="text-xs text-muted-foreground">My ideal price</dt>
           <dd className="text-sm font-medium">{c(tracked.target_price_cents)}</dd>
         </div>
         <div>

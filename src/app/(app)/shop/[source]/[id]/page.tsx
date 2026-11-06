@@ -1,14 +1,19 @@
+import { Sparkles } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AskBar } from "@/components/ask-bar";
 import { DemoCatalogueBadge, LiveBadge } from "@/components/badges";
 import { BuyBox } from "@/components/buy-box";
 import { BuyNowButton } from "@/components/buy-button";
+import { CompareButton } from "@/components/product-grid";
 import { ProductTile } from "@/components/product-tile";
+import { dealVerdict } from "@/lib/assistant/deal";
 import { fetchProductCard } from "@/lib/catalogue";
 import type { ProductCard } from "@/lib/channel3/normalize";
 import { lowestOffer } from "@/lib/discovery/filters";
 import { recordView } from "@/lib/discovery/service";
-import { dateTime } from "@/lib/format";
+import { assistantHref, dateTime } from "@/lib/format";
+import { loadIntelligence } from "@/lib/intelligence/load";
 import { formatCents } from "@/lib/money";
 import { getDeps } from "@/lib/serverDeps";
 import { productKey, shopperState } from "@/lib/shopper";
@@ -44,15 +49,18 @@ export default async function ShopProductPage({ params }: { params: Promise<{ so
   if (!card) notFound();
 
   await recordView(deps, user.id, card).catch(() => undefined);
-  const state = await shopperState(supabase);
+  const [state, { rows }] = await Promise.all([shopperState(supabase), loadIntelligence(supabase, deps.now())]);
   const key = productKey(source, id);
   const low = lowestOffer(card);
   const offers = [...card.offers].sort((a, b) => a.priceCents - b.priceCents);
   const fetchedAt = deps.now().toISOString();
+  const row = rows.find((r) => r.source === source && r.externalId === id) ?? null;
+  const verdict = dealVerdict(card, row);
+  const lowUrl = offers.find((o) => o.domain === low?.domain)?.url;
 
   return (
     <div className="grid gap-6 md:grid-cols-2 md:gap-10">
-      <ProductTile title={card.title} imageUrl={card.imageUrl} className="w-full rounded-2xl border bg-white" />
+      <ProductTile title={card.title} imageUrl={card.imageUrl} className="w-full rounded-2xl border bg-white md:sticky md:top-20 md:self-start" />
       <div className="grid content-start gap-4">
         <div>
           {card.brand && <p className="text-sm text-muted-foreground">{card.brand}</p>}
@@ -61,15 +69,40 @@ export default async function ShopProductPage({ params }: { params: Promise<{ so
 
         {low ? (
           <div>
+            <p className="text-xs font-medium text-muted-foreground">Today&apos;s price</p>
             <p className="tnum font-display text-4xl font-semibold">{formatCents(low.priceCents, low.currency)}</p>
-            <p className="mt-1 text-sm break-all text-muted-foreground">Lowest current offer, at {low.domain}</p>
+            <p className="mt-1 text-sm break-all text-muted-foreground">
+              Lowest we can see, at {low.domain}
+              {lowUrl && <> · <a href={lowUrl} target="_blank" rel="noopener noreferrer nofollow sponsored" className="text-primary hover:underline">View at retailer</a></>}
+            </p>
             <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              Fetched {dateTime(fetchedAt)}
+              Checked {dateTime(fetchedAt)}
               {source === "seed" ? <DemoCatalogueBadge /> : <LiveBadge />}
             </p>
           </div>
         ) : (
           <p className="text-muted-foreground">No current offers for this product.</p>
+        )}
+
+        {row?.reductionPercent != null && row.previousCents !== null && row.currentCents !== null && (
+          <p className="tnum rounded-xl bg-deal-soft px-3 py-2 text-sm font-medium text-deal">
+            Verified drop: we recorded {formatCents(row.previousCents, row.currency)}, then {formatCents(row.currentCents, row.currency)}{row.domain ? ` at ${row.domain}` : ""}, {row.reductionPercent}% lower.
+          </p>
+        )}
+
+        <section aria-label="What PriceDrop found" className="grid gap-1.5 rounded-2xl bg-accent/60 p-4">
+          <h2 className="flex items-center gap-1.5 text-sm font-semibold"><Sparkles aria-hidden className="size-4 text-primary" />What PriceDrop found</h2>
+          <p className="font-medium">{verdict.headline}</p>
+          <ul className="grid gap-1 text-sm text-muted-foreground">
+            {verdict.points.map((pt) => <li key={pt} className="break-words">{pt}</li>)}
+          </ul>
+        </section>
+
+        {row && (
+          <p className="tnum text-sm">
+            <span className="text-muted-foreground">My ideal price: </span>
+            <span className="font-semibold">{formatCents(row.targetCents, row.currency)}</span>
+          </p>
         )}
 
         <BuyBox
@@ -83,6 +116,17 @@ export default async function ShopProductPage({ params }: { params: Promise<{ so
           domains={[...new Set(card.offers.map((o) => o.domain))]}
           variants={[...new Set(card.offers.flatMap((o) => (o.variantLabel ? [o.variantLabel] : [])))]}
           hasOffers={Boolean(low)}
+        />
+
+        <div className="flex flex-wrap items-center gap-x-5">
+          <CompareButton productKey={key} />
+          <Link href={assistantHref("Compare with similar products", { product: key })} className="inline-flex min-h-9 items-center text-sm font-medium text-primary hover:underline">Compare similar products</Link>
+        </div>
+
+        <AskBar
+          placeholder="Ask PriceDrop about this item"
+          suggestions={["Is this a good deal?", "Find cheaper alternatives"]}
+          context={{ product: key }}
         />
 
         {low && low.inStock !== false && (
@@ -119,6 +163,16 @@ export default async function ShopProductPage({ params }: { params: Promise<{ so
                 ? "Demo catalogue: invented prices and retailers, not live retailer data."
                 : "Prices may change at any time. Retailer links may earn PriceDrop a commission."}
             </p>
+          </section>
+        )}
+
+        {(card.features?.length || card.rating) && (
+          <section aria-label="Specifications" className="grid gap-2 border-t pt-4">
+            <h2 className="text-lg font-semibold">Specifications</h2>
+            {card.rating && <p className="tnum text-sm">Rated {card.rating.value.toFixed(1)} of 5 by {card.rating.count.toLocaleString("en-US")} shoppers</p>}
+            {card.features && card.features.length > 0 && (
+              <ul className="grid list-disc gap-1 pl-5 text-sm">{card.features.map((x) => <li key={x} className="break-words">{x}</li>)}</ul>
+            )}
           </section>
         )}
       </div>

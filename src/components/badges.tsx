@@ -23,24 +23,24 @@ export function SourceBadge({ source }: { source: ObservationSource }) {
   return <LiveBadge />;
 }
 
-/** Green only when at or below target. */
+/** Green only when at or below the ideal price. */
 export function DeltaBadge({ priceCents, targetCents, currency }: { priceCents: number; targetCents: number; currency: string }) {
   const diff = targetCents - priceCents;
   if (diff >= 0) {
     return (
       <span className={cn(base, "tnum bg-deal-soft text-deal")}>
-        {diff === 0 ? "At target" : `${formatCents(diff, currency)} below target`}
+        {diff === 0 ? "At your ideal price" : `${formatCents(diff, currency)} below your ideal price`}
       </span>
     );
   }
-  return <span className={cn(base, "tnum bg-secondary text-secondary-foreground")}>{formatCents(-diff, currency)} above target</span>;
+  return <span className={cn(base, "tnum bg-secondary text-secondary-foreground")}>{formatCents(-diff, currency)} above your ideal price</span>;
 }
 
 const STATUS: Record<TrackedStatus, string> = {
   active: "Watching",
   paused: "Paused",
-  deal_found: "Deal found",
-  purchased: "Purchased (sandbox)",
+  deal_found: "At your ideal price",
+  purchased: "Bought (sandbox)",
   removed: "Removed",
 };
 

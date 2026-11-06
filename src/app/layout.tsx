@@ -7,7 +7,7 @@ const display = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-disp
 const text = Instrument_Sans({ subsets: ["latin"], variable: "--font-text", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "PriceDrop: find it, track it, get it for less",
+  title: "PriceDrop: find what you love, get it for less",
   description: "Discover products, keep an eye on their prices and know when it's a good time to buy.",
 };
 

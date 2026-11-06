@@ -28,3 +28,14 @@ export function centsToInput(cents: number | null | undefined): string {
 }
 
 export const shopHref = (source: string, id: string) => `/shop/${source}/${encodeURIComponent(id)}`;
+
+export type AskContext = { product?: string; category?: string; items?: string };
+
+/** A link into the assistant that carries what the person is looking at. Usable from server and client. */
+export function assistantHref(q: string, context?: AskContext) {
+  const qs = new URLSearchParams({ q });
+  if (context?.product) qs.set("product", context.product);
+  if (context?.category) qs.set("category", context.category);
+  if (context?.items) qs.set("items", context.items);
+  return `/assistant?${qs}`;
+}

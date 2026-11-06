@@ -20,7 +20,7 @@ export type TrackingInput = {
 export async function loadOwnedTracked(deps: Deps, userId: string, id: string): Promise<TrackedRow> {
   const { data } = await deps.db.from("tracked_products").select("*").eq("id", id).maybeSingle();
   const row = data as TrackedRow | null;
-  if (!row || row.user_id !== userId || row.status === "removed") throw notFound("That tracked product");
+  if (!row || row.user_id !== userId || row.status === "removed") throw notFound("That saved item");
   return row;
 }
 
@@ -91,7 +91,7 @@ export async function updateTracking(deps: Deps, userId: string, id: string, pat
 
   const target = patch.targetPriceCents ?? current.target_price_cents;
   const max = patch.maxTotalCents ?? current.max_total_cents;
-  if (target > max) throw new ApiError(400, "target_above_max", "Your target can't be above your maximum total.");
+  if (target > max) throw new ApiError(400, "target_above_max", "Your ideal price can't be above the most you'd pay in total.");
 
   const update: Record<string, unknown> = { target_price_cents: target, max_total_cents: max };
   if (patch.allowedDomains) update.allowed_domains = patch.allowedDomains.map(normalizeDomain);

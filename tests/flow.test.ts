@@ -101,7 +101,7 @@ describe("tracking and baseline", () => {
   it("a source failure records nothing and says so", async () => {
     const user = await newUser();
     const { tracked } = await createTracking(deps, user, { ...seed, targetPriceCents: 7000, maxTotalCents: 9000 });
-    const failing: Deps = { ...deps, channel3: { search: async () => [], retrieve: async () => { throw new Error("down"); } } };
+    const failing: Deps = { ...deps, channel3: { search: async () => [], retrieve: async () => { throw new Error("down"); }, similar: async () => [] } };
     const { data: fakeProduct } = await db.from("products").insert({ source: "channel3", external_id: `x-${randomUUID()}`, title: "c3" }).select().single();
     const { data: t2 } = await db.from("tracked_products").insert({ user_id: user, product_id: fakeProduct!.id, target_price_cents: 100, max_total_cents: 100 }).select().single();
     const r = await checkTracked(failing, t2 as TrackedRow, { trigger: "monitor" });
@@ -458,6 +458,7 @@ describe("catalogue budget guard", () => {
     const gateway = {
       async search() { paid.calls++; return []; },
       async retrieve() { throw new Error("n/a"); },
+      async similar() { return []; },
     };
     const when = new Date("2031-01-15T00:00:00Z");
     const d: Deps = { ...deps, channel3: gateway, channel3Budget: 2, now: () => when };

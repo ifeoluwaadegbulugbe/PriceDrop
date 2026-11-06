@@ -1,6 +1,7 @@
 import { cn } from "cn";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AskBar } from "@/components/ask-bar";
 import { FallbackBanner, ProductGrid } from "@/components/product-grid";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api/errors";
@@ -73,11 +74,17 @@ export default async function CategoryPage({ params, searchParams }: { params: P
 
   return (
     <div className="grid gap-5">
-      <nav aria-label="Breadcrumb"><Link href="/dashboard" className="text-sm text-muted-foreground hover:underline">Home</Link></nav>
+      <nav aria-label="Breadcrumb"><Link href="/categories" className="text-sm text-muted-foreground hover:underline">Categories</Link></nav>
       <div>
         <h1 className="text-3xl font-semibold sm:text-4xl">{active.name}</h1>
         <p className="mt-1 text-muted-foreground">{sub ? `In ${category.name}` : category.description}</p>
       </div>
+
+      <AskBar
+        placeholder={`Ask PriceDrop about ${active.name.toLowerCase()}`}
+        suggestions={["Find something under $50", "Find something under $100"]}
+        context={{ category: active.slug }}
+      />
 
       {subs.length > 0 && (
         <nav aria-label="Subcategories" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
@@ -132,7 +139,7 @@ export default async function CategoryPage({ params, searchParams }: { params: P
               ? "Try removing a filter or raising your maximum price."
               : "We only show real products, and we don't have any to show for this one yet. You can still search for what you want."}
           </p>
-          <Link href="/search" className="mt-1 text-sm font-medium text-primary hover:underline">Search all products</Link>
+          <Link href="/assistant" className="mt-1 text-sm font-medium text-primary hover:underline">Ask PriceDrop</Link>
         </div>
       )}
     </div>

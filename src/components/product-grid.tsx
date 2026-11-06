@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "cn";
-import { Heart } from "lucide-react";
+import { Check, Heart, Plus } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { DemoCatalogueBadge } from "@/components/badges";
@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { api, errorMessage } from "@/lib/api/client";
 import type { FallbackReason } from "@/lib/catalogue";
 import type { ProductCard } from "@/lib/channel3/normalize";
+import { COMPARE_MAX, toggleCompare, useCompare } from "@/lib/compare-store";
 import { lowestOffer } from "@/lib/discovery/filters";
 import { shopHref } from "@/lib/format";
 import { formatCents } from "@/lib/money";
@@ -67,11 +68,28 @@ export function SaveButton({ source, id, initiallySaved, className }: { source: 
       onClick={toggle}
       disabled={busy}
       aria-pressed={saved}
-      aria-label={saved ? "Remove from watchlist" : "Save to watchlist"}
-      title={error ?? (saved ? "Saved to your watchlist" : "Save to watchlist")}
+      aria-label={saved ? "Remove from saved items" : "Save this item"}
+      title={error ?? (saved ? "In your saved items" : "Save this item")}
       className={cn("flex size-10 items-center justify-center rounded-full bg-white/90 text-[#1b1b24] shadow-sm backdrop-blur transition-colors hover:bg-white", className)}
     >
       <Heart className={cn("size-5", saved && "fill-brand text-brand")} aria-hidden />
+    </button>
+  );
+}
+
+export function CompareButton({ productKey, className }: { productKey: string; className?: string }) {
+  const picked = useCompare();
+  const on = picked.includes(productKey);
+  return (
+    <button
+      type="button"
+      aria-pressed={on}
+      disabled={!on && picked.length >= COMPARE_MAX}
+      onClick={() => toggleCompare(productKey)}
+      className={cn("inline-flex min-h-9 items-center gap-0.5 text-xs font-medium whitespace-nowrap disabled:opacity-50", on ? "text-primary" : "text-muted-foreground hover:text-foreground", className)}
+    >
+      {on ? <Check aria-hidden className="size-4" /> : <Plus aria-hidden className="size-4" />}
+      Compare
     </button>
   );
 }
@@ -83,6 +101,7 @@ export function ProductGrid({
   trackedByKey,
   suggestedTargetCents,
   rail,
+  reasons,
 }: {
   cards: ProductCard[];
   currency: string;
@@ -91,6 +110,8 @@ export function ProductGrid({
   suggestedTargetCents?: number;
   /** A sideways-scrolling row on phones, for homepage sections. */
   rail?: boolean;
+  /** Why the assistant picked each product, by product key. */
+  reasons?: Record<string, string>;
 }) {
   const [target, setTarget] = useState<SheetTarget | null>(null);
   const saved = new Set(savedKeys);
@@ -131,10 +152,12 @@ export function ProductGrid({
                 ) : (
                   <p className="text-sm text-muted-foreground">No current offers</p>
                 )}
+                {reasons?.[key] && <p className="text-xs leading-snug text-accent-foreground">{reasons[key]}</p>}
+                {p.features?.[0] && <p className="line-clamp-2 text-xs leading-snug text-muted-foreground">{p.features[0]}</p>}
                 {p.source === "seed" && <DemoCatalogueBadge className="mt-1 self-start" />}
-                <div className="mt-auto pt-2">
+                <div className="mt-auto grid gap-1 pt-2">
                   {trackedId ? (
-                    <Link href={`/products/${trackedId}`} className={buttonVariants({ variant: "secondary", size: "sm", className: "w-full" })}>Tracking</Link>
+                    <Link href={`/products/${trackedId}`} className={buttonVariants({ variant: "secondary", size: "sm", className: "w-full" })}>Watching</Link>
                   ) : (
                     <Button
                       size="sm"
@@ -153,9 +176,13 @@ export function ProductGrid({
                         })
                       }
                     >
-                      Track price
+                      Watch this item
                     </Button>
                   )}
+                  <div className="flex flex-wrap items-center justify-between gap-x-2">
+                    <Link href={shopHref(p.source, p.id)} className="inline-flex min-h-9 items-center text-xs font-medium whitespace-nowrap text-primary hover:underline">View product</Link>
+                    <CompareButton productKey={key} />
+                  </div>
                 </div>
               </div>
             </li>

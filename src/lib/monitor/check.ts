@@ -193,8 +193,8 @@ export async function checkTracked(
         await notify(deps.db, {
           user_id: tracked.user_id,
           kind: "tracking_status",
-          title: "A deal ended",
-          body: `The offer at ${offer.domain} no longer meets your rules.`,
+          title: "That price has changed",
+          body: `The offer at ${offer.domain} no longer matches what you asked for.`,
           link: `/products/${tracked.id}`,
         });
       }
@@ -255,7 +255,7 @@ export async function checkTracked(
       await notify(deps.db, {
         user_id: tracked.user_id,
         kind: "deal_found",
-        title: `Deal found${simulated}`,
+        title: `It's reached your ideal price!${simulated}`,
         body: `${product.title.slice(0, 80)} is ${formatCents(offer.priceCents, offer.currency)} at ${offer.domain}.`,
         link: `/deals/${alertId}`,
       });

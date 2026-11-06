@@ -160,16 +160,16 @@ export default function PriceGrids({ rows, activity, sortResetKey, search, actio
   }
 
   const columns = useMemo<ColDef<IntelligenceRow>[]>(() => [
-    { colId: "product", field: "title", headerName: "Product", flex: 2, minWidth: 220, cellRenderer: ProductCell, getQuickFilterText: (p) => `${p.data.title} ${p.data.brand ?? ""} ${p.data.domain ?? ""}` },
+    { colId: "product", field: "title", headerName: "Product", flex: 2, minWidth: 200, cellRenderer: ProductCell, getQuickFilterText: (p) => `${p.data.title} ${p.data.brand ?? ""} ${p.data.domain ?? ""}` },
     {
-      colId: "current", field: "currentCents", headerName: "Price now", width: 108, type: "rightAligned", cellStyle: ROW_END, cellRenderer: PriceCell,
+      colId: "current", field: "currentCents", headerName: "Latest price", width: 108, type: "rightAligned", cellStyle: ROW_END, cellRenderer: PriceCell,
       comparator: (a, b) => (a ?? Number.MAX_SAFE_INTEGER) - (b ?? Number.MAX_SAFE_INTEGER),
     },
     { colId: "previous", field: "previousCents", headerName: "Before", width: 104, type: "rightAligned", cellStyle: ROW_END, cellRenderer: PreviousCell },
     {
-      colId: "target", field: "targetCents", headerName: "Target", width: 92, type: "rightAligned", cellStyle: ROW_END,
+      colId: "target", field: "targetCents", headerName: "My ideal price", width: 124, type: "rightAligned", cellStyle: ROW_END,
       editable: (p) => p.data?.trackedStatus !== "purchased",
-      headerTooltip: "Click a target to change it",
+      headerTooltip: "Click an ideal price to change it",
       cellEditor: "agNumberCellEditor",
       cellEditorParams: { min: 0, precision: 2 },
       valueGetter: (p) => (p.data ? p.data.targetCents / 100 : null),
@@ -184,7 +184,7 @@ export default function PriceGrids({ rows, activity, sortResetKey, search, actio
       onCellValueChanged: onTargetEdited,
     },
     {
-      colId: "gap", field: "toTargetCents", headerName: "Left to save", width: 108, cellRenderer: TargetGapCell,
+      colId: "gap", field: "toTargetCents", headerName: "To ideal", width: 96, cellRenderer: TargetGapCell,
       comparator: (a, b) => (a ?? Number.MAX_SAFE_INTEGER) - (b ?? Number.MAX_SAFE_INTEGER),
     },
     { colId: "status", field: "status", headerName: "Status", width: 145, cellRenderer: StatusCell },
@@ -207,7 +207,7 @@ export default function PriceGrids({ rows, activity, sortResetKey, search, actio
 
   return (
     <div className="grid gap-8">
-      <section aria-label="Your tracked products">
+      <section aria-label="Items you're watching">
         <AgGridReact<IntelligenceRow>
           theme={theme}
           rowData={rows}
@@ -226,17 +226,17 @@ export default function PriceGrids({ rows, activity, sortResetKey, search, actio
           paginationPageSizeSelector={[20, 50, 100]}
           tooltipShowDelay={300}
           onGridReady={(e) => { apiRef.current = e.api; }}
-          overlayNoRowsTemplate="No products match this view."
+          overlayNoRowsTemplate="No items match this view."
         />
       </section>
 
-      <section aria-label="Deal activity" className="grid gap-3">
+      <section aria-label="Price updates" className="grid gap-3">
         <div>
-          <h2 className="text-xl font-semibold">Deal activity</h2>
-          <p className="text-sm text-muted-foreground">What has happened to the products you track. Payment entries are always sandbox.</p>
+          <h2 className="text-xl font-semibold">Price updates</h2>
+          <p className="text-sm text-muted-foreground">What has happened to the items you&apos;re watching. Payment entries are always sandbox.</p>
         </div>
         {activity.length === 0 ? (
-          <p className="rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">Nothing yet. Price changes and deals will appear here.</p>
+          <p className="rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">Nothing yet. Price changes will appear here.</p>
         ) : (
           <AgGridReact<ActivityEvent>
             theme={theme}

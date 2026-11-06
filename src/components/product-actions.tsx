@@ -48,7 +48,7 @@ export function ProductActions({
   }
 
   if (status === "purchased") {
-    return <p className="text-sm text-muted-foreground">Monitoring has stopped because this was purchased in the sandbox.</p>;
+    return <p className="text-sm text-muted-foreground">I&apos;ve stopped watching this because you bought it in the sandbox.</p>;
   }
 
   return (
@@ -61,14 +61,14 @@ export function ProductActions({
             run("check", async () => {
               const r = await api<{ status: string; observationsWritten: number; alertsCreated: number }>(`/api/tracking/${trackedId}/check`, { method: "POST" });
               if (r.status !== "ok") return "We couldn't get current offers from the source. Nothing was recorded.";
-              if (r.alertsCreated) return "Checked. A deal meets your rules.";
+              if (r.alertsCreated) return "Checked. It matches what you asked for.";
               return r.observationsWritten ? "Checked. New price recorded." : "Checked. Nothing changed.";
             })
           }
         >
           {busy === "check" ? "Checking..." : "Check now"}
         </Button>
-        <Button size="lg" variant="outline" disabled={busy !== null} onClick={() => setEditing(true)}>Edit rules</Button>
+        <Button size="lg" variant="outline" disabled={busy !== null} onClick={() => setEditing(true)}>Change my ideal price</Button>
         <Button
           size="lg"
           variant="outline"
@@ -91,7 +91,7 @@ export function ProductActions({
                 setBusy("remove");
                 try {
                   await api(`/api/tracking/${trackedId}`, { method: "DELETE" });
-                  router.push("/dashboard");
+                  router.push("/saved");
                   router.refresh();
                 } catch (e) {
                   setError(errorMessage(e));
@@ -132,7 +132,7 @@ export function SimulatePanel({ trackedId, currency }: { trackedId: string; curr
     setNote(null);
     try {
       const r = await api<{ alertsCreated: number }>("/api/demo/simulate-price", { method: "POST", body: { trackedProductId: trackedId, priceCents: cents } });
-      setNote(r.alertsCreated ? "Simulated price recorded. It met your rules and created a deal." : "Simulated price recorded. No new deal was created.");
+      setNote(r.alertsCreated ? "Simulated price recorded. It matched what you asked for." : "Simulated price recorded. Nothing new to show you.");
       setValue("");
       router.refresh();
     } catch (err) {

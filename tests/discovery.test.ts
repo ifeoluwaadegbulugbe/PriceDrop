@@ -38,6 +38,7 @@ function gateway(cards: ProductCard[]) {
       if (!c) throw new Error("gone");
       return c;
     },
+    similar: async () => cards,
   };
 }
 

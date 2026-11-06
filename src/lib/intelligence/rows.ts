@@ -13,7 +13,7 @@ const CLOSE_PERCENT = 5;
 export type RowStatus = "target_reached" | "price_dropped" | "watching" | "paused" | "purchased" | "not_checked";
 
 export const STATUS_LABELS: Record<RowStatus, string> = {
-  target_reached: "Target reached",
+  target_reached: "At ideal price",
   price_dropped: "Price dropped",
   watching: "Still watching",
   paused: "Paused",
@@ -34,6 +34,8 @@ export type IntelligenceRow = {
   previousCents: number | null;
   reductionCents: number | null;
   reductionPercent: number | null;
+  /** How much the latest recorded price rose at the same retailer. Null unless it did. */
+  increaseCents: number | null;
   targetCents: number;
   maxCents: number;
   /** Current minus target. Positive means still above target. Null without a price. */
@@ -75,6 +77,7 @@ export function buildRows(
 
     const comparable = current && previous && previous.currency === current.currency;
     const dropped = comparable && previous.price_cents > current.price_cents;
+    const rose = comparable && previous.price_cents < current.price_cents;
     const observedAt = current?.observed_at ?? null;
     const stale = observedAt ? now.getTime() - new Date(observedAt).getTime() > FRESH_MS : false;
     const toTarget = current ? current.price_cents - t.target_price_cents : null;
@@ -101,6 +104,7 @@ export function buildRows(
       previousCents: previous?.price_cents ?? null,
       reductionCents: dropped ? previous.price_cents - current.price_cents : null,
       reductionPercent: dropped ? dropPercent(previous.price_cents, current.price_cents) : null,
+      increaseCents: rose ? current.price_cents - previous.price_cents : null,
       targetCents: t.target_price_cents,
       maxCents: t.max_total_cents,
       toTargetCents: toTarget,
@@ -116,7 +120,7 @@ export function buildRows(
   });
 }
 
-export type ActivityKind = "price_drop" | "target_reached" | "close_to_target" | "check_failed" | "paused" | "awaiting_decision" | "purchase";
+export type ActivityKind = "price_up" | "price_drop" | "target_reached" | "close_to_target" | "check_failed" | "paused" | "awaiting_decision" | "purchase";
 export type ActivityEvent = {
   id: string;
   kind: ActivityKind;
@@ -151,8 +155,8 @@ export function buildActivity(
       events.push({
         id: `alert-wait-${a.id}`,
         kind: "awaiting_decision",
-        label: "Your decision",
-        description: `${money(a.price_cents, currency)} at ${a.domain} meets your rules and is waiting for you.`,
+        label: "Ready when you are",
+        description: `${money(a.price_cents, currency)} at ${a.domain} matches what you asked for.`,
         productTitle: title,
         href: `/deals/${a.id}`,
         at: a.created_at,
@@ -162,7 +166,7 @@ export function buildActivity(
       events.push({
         id: `alert-drop-${a.id}`,
         kind: "price_drop",
-        label: "Price dropped",
+        label: "The price just dropped.",
         description: `Fell from ${money(a.previous_price_cents, currency)} to ${money(a.price_cents, currency)} at ${a.domain}.`,
         productTitle: title,
         href: `/deals/${a.id}`,
@@ -172,8 +176,8 @@ export function buildActivity(
       events.push({
         id: `alert-target-${a.id}`,
         kind: "target_reached",
-        label: "Target reached",
-        description: `${money(a.price_cents, currency)} at ${a.domain} is at or below your target. It isn't a price drop.`,
+        label: "It's reached your ideal price!",
+        description: `${money(a.price_cents, currency)} at ${a.domain} is at or below your ideal price. It isn't a price drop.`,
         productTitle: title,
         href: `/deals/${a.id}`,
         at: a.created_at,
@@ -186,8 +190,19 @@ export function buildActivity(
       events.push({
         id: `check-${r.id}`,
         kind: "check_failed",
-        label: "Check failed",
-        description: "Our latest price check didn't work, so the last price we show may be out of date.",
+        label: "We couldn't check the price right now.",
+        description: "The last price we show may be out of date.",
+        productTitle: r.title,
+        href: `/products/${r.id}`,
+        at: r.observedAt,
+      });
+    }
+    if (r.increaseCents !== null && r.observedAt && r.currentCents !== null && r.previousCents !== null) {
+      events.push({
+        id: `up-${r.id}`,
+        kind: "price_up",
+        label: "The price has gone up.",
+        description: `Rose from ${money(r.previousCents, r.currency)} to ${money(r.currentCents, r.currency)}${r.domain ? ` at ${r.domain}` : ""}.`,
         productTitle: r.title,
         href: `/products/${r.id}`,
         at: r.observedAt,
@@ -212,7 +227,7 @@ export function buildActivity(
         id: `close-${r.id}`,
         kind: "close_to_target",
         label: "Getting close",
-        description: `${money(r.toTargetCents, r.currency)} away from your ${money(r.targetCents, r.currency)} target.`,
+        description: `${money(r.toTargetCents, r.currency)} away from your ${money(r.targetCents, r.currency)} ideal price.`,
         productTitle: r.title,
         href: `/products/${r.id}`,
         at: r.observedAt,
