@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "cn";
-import { Bell, Heart, Home, LayoutGrid, Sparkles, TrendingDown, User } from "lucide-react";
+import { Bell, Heart, Home, LayoutGrid, ShoppingBag, Sparkles, TrendingDown, User } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -16,7 +16,7 @@ const NAV = [
   { href: "/categories", label: "Categories", icon: LayoutGrid, also: ["/shop", "/compare"] },
   { href: "/saved", label: "Saved items", icon: Heart, also: ["/products", "/deals", "/price-intelligence"] },
   { href: "/price-drops", label: "Price drops", icon: TrendingDown, also: [] },
-  { href: "/settings", label: "Profile", icon: User, also: ["/purchases", "/checkout"] },
+  { href: "/settings", label: "Profile", icon: User, also: [] },
 ];
 
 const iconButton = "inline-flex size-10 items-center justify-center rounded-full hover:bg-muted";
@@ -93,6 +93,15 @@ export function AppHeader({ notifications }: { notifications: NotificationRow[] 
           <div className="flex items-center">
             <Link href="/assistant" aria-label="Ask PriceDrop" className={iconButton}><Sparkles className="size-5 text-primary" aria-hidden /></Link>
             <NotificationsBell initial={notifications} />
+            <Link
+              href="/purchases"
+              aria-label="Purchases"
+              title="Purchases"
+              aria-current={under("/purchases") ? "page" : undefined}
+              className={cn(iconButton, (under("/purchases") || under("/checkout")) && "bg-accent text-accent-foreground")}
+            >
+              <ShoppingBag className="size-5" aria-hidden />
+            </Link>
           </div>
         </div>
       </header>

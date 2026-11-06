@@ -35,7 +35,6 @@ export default async function SettingsPage() {
         categories={tops.map((c) => ({ slug: c.slug, name: c.name, description: c.description }))}
       />
       <nav aria-label="More" className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
-        <Link href="/purchases" className="font-medium text-primary hover:underline">Purchases</Link>
         <Link href="/price-intelligence" className="font-medium text-primary hover:underline">Price details</Link>
         <Link href="/onboarding" className="font-medium text-primary hover:underline">See the introduction again</Link>
       </nav>
