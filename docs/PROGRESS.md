@@ -40,6 +40,14 @@ Run with the emulator for the database and payments, and real Channel3 data:
 - Not tested: real Supabase, a real PayPal order, the migration on a real project, and Gemini. **The live site's PayPal error is still undiagnosed**, because the reason wasn't visible before this change.
 - Credits used on Channel3 so far: an estimated 25 to 50 of 1,000 (not metered here; check the Channel3 dashboard), including one 12-credit check of all categories.
 
+## Real PayPal sandbox capture (2026-11-06)
+
+On the deployed site, the owner completed Buy now with a real sandbox order: approved at PayPal with a sandbox buyer, returned to the site, and saw the capture confirmed. Reported by the owner from the live site, not observed directly.
+
+Two setup problems came first, both outside the code:
+- Local emulator values had reached the deployment's settings, including `PAYPAL_BASE_URL`, giving "couldn't reach PayPal".
+- PayPal's "merchant isn't able to accept PayPal payments" appeared before the owner changed the sandbox setup. A new US sandbox business account with a new app was the suggested fix.
+
 ## What is real, what is emulated
 
 | Piece | Status |
@@ -47,7 +55,7 @@ Run with the emulator for the database and payments, and real Channel3 data:
 | Evaluation, alert policy, money, parsers, explanation verifier | Real code, tested |
 | Migrations, RLS, state machine trigger, `finalize_capture` | Real SQL on real Postgres (PGlite), **not yet on Supabase** |
 | Supabase Auth | **Emulated only** |
-| PayPal client | Real code, request shapes per docs, **only ever run against the local fake** |
+| PayPal client | **Create, approve and capture confirmed on the real sandbox** through Buy now. Deal checkouts, declines and refunds are tested only against the local fake |
 | Channel3 client | **Called for real**: search and retrieve work. Fallback to the Demo catalogue tested |
 | Gemini | **Never called**. Off by default, basic mode tested |
 | Webhook | Logic tested, signature path tested as rejection only |
@@ -57,7 +65,6 @@ Run with the emulator for the database and payments, and real Channel3 data:
 
 Blocked on accounts you need to create (`docs/DEPLOY.md`):
 1. First Vercel deploy and the rehearsal on the deployed URL.
-2. Real PayPal sandbox approval with a sandbox buyer. Definition of Done needs this.
 3. `npm run test:rls -- --env` and `npm run test:security -- --env` on real Supabase.
 
 Known gaps:

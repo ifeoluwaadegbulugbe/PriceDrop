@@ -57,6 +57,8 @@ DEMO_USER_EMAIL=you@example.com DEMO_USER_PASSWORD=choose-one npm run seed:demo
 ## Troubleshooting
 - The Profile page has a live PayPal check. It reports rejected keys, an unreachable or wrong address, or a missing `NEXT_PUBLIC_APP_URL`. Start there.
 - "PayPal rejected this site's sandbox credentials": the client ID or secret in Vercel is wrong, or from Live rather than Sandbox. Redeploy after fixing it.
+- "The merchant isn't able to accept PayPal payments" on PayPal's page: the sandbox business account can't receive payments. Create a new **United States** sandbox business account, create a new app linked to it, put its keys in Vercel, and redeploy.
+- Never copy values from `.env.local-stack` into Vercel. They only work with the local emulator.
 - Monitor workflow shows a "Skipped" warning: the GitHub secrets from step 5 aren't set.
 - Any other PayPal error shows PayPal's code and reference on screen. It also appears in Vercel's logs as `paypal_create_failed`, and in the Supabase SQL Editor:
   `select failure_reason, created_at from paypal_orders where status = 'failed' order by created_at desc limit 5;`

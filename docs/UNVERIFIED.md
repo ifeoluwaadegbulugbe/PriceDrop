@@ -43,7 +43,7 @@ Any other unknown (stock, variant) still gives `insufficient_info`. To change th
 - Long-term storage of price observations: the caching guide discourages long-lived caching of full product data. Observations are timestamped history and are never shown as current. Not explicitly addressed by their docs.
 - `products.image_url` is stored as display metadata, refreshed only when tracking starts, and may go stale. Docs: don't assume image URLs are permanent.
 
-## PayPal (no credentials: never called, only the local fake)
+## PayPal (real sandbox capture confirmed 2026-11-06; webhooks and declines still only against the local fake)
 Confirmed in `orders/v2/schema.json`: `NO_SHIPPING`, capture statuses `COMPLETED, DECLINED, PARTIALLY_REFUNDED, PENDING, REFUNDED, FAILED`, capture path `purchase_units[].payments.captures[]`, `payer-action` link, order examples `CREATED, APPROVED, PAYER_ACTION_REQUIRED, COMPLETED`.
 
 Unconfirmed, coded defensively:
